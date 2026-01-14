@@ -73,15 +73,16 @@ class FileManager {
 
         this.canvas.clear();
 
-        if (file.content) {
-            this.loadSVGContent(file.content);
-        }
-
+        // Update size BEFORE loading content so canvas:loaded has correct dimensions
         if (file.width && file.height) {
             this.canvas.updateSize(file.width, file.height, file.viewBox || `0 0 ${file.width} ${file.height}`);
             document.getElementById('svg-width').value = file.width;
             document.getElementById('svg-height').value = file.height;
             document.getElementById('svg-viewbox').value = file.viewBox || `0 0 ${file.width} ${file.height}`;
+        }
+
+        if (file.content) {
+            this.loadSVGContent(file.content);
         }
 
         this.currentFileId = id;
@@ -139,6 +140,8 @@ class FileManager {
             const pointsStr = polygon.getAttribute('points') || '';
             const points = this.parsePointsString(pointsStr);
             if (points.length >= 2) {
+                // Close the polygon by duplicating the first point at the end
+                points.push({ ...points[0] });
                 const shape = new Polyline(points);
                 this.applyCommonAttributes(shape, polygon);
                 this.canvas.addShape(shape);

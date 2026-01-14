@@ -187,6 +187,11 @@ class App {
 
         // Initialize canvas position on load
         updateZoom(100);
+
+        // Update container dimensions when a new file is loaded
+        eventBus.on('canvas:loaded', () => {
+            updateZoom(this.zoom);
+        });
     }
 
     setupKeyboardShortcuts() {

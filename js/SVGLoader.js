@@ -72,6 +72,8 @@ class SVGLoader {
             const points = this.parsePointsString(pointsStr);
 
             if (points.length >= 2) {
+                // Close the polygon by duplicating the first point at the end
+                points.push({ ...points[0] });
                 const shape = new Polyline(points);
                 this.applyCommonAttributes(shape, polygon);
                 this.canvas.addShape(shape);
