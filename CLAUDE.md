@@ -49,3 +49,10 @@ Tools handle canvas interactions and follow a common interface:
 - `LayersPanel` - UI for layer ordering and visibility
 - `ToolsPanel` - Property editor for selected shapes
 - `SVGLoader` - File import/export functionality
+
+### File Management
+
+Files are persisted to IndexedDB for local storage:
+- `FileDatabase` (`js/FileDatabase.js`) - IndexedDB wrapper exposed as `window.fileDatabase`
+- `FileManager` (`js/FileManager.js`) - Handles save/load operations, auto-save, and dirty state tracking
+- `FileBrowserDialog` (`js/FileBrowserDialog.js`) - Modal UI for browsing, opening, and deleting saved files

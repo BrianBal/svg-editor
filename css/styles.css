@@ -55,7 +55,51 @@ html, body {
 
 .file-actions {
     display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.file-name-wrapper {
+    display: flex;
+    align-items: center;
     gap: 8px;
+}
+
+.file-name-input {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 120px;
+    max-width: 200px;
+}
+
+.file-name-input:hover {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+}
+
+.file-name-input:focus {
+    outline: none;
+    background: var(--bg-input);
+    border-color: var(--accent-color);
+}
+
+.save-status {
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 50px;
+}
+
+.save-status.saving {
+    color: var(--text-secondary);
+}
+
+.save-status.saved {
+    color: var(--text-muted);
 }
 
 .svg-settings {
@@ -688,4 +732,216 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* File Browser Dialog */
+.file-browser-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+.file-browser-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.file-browser-dialog {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.file-browser-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.file-browser-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.file-browser-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.file-browser-close:hover {
+    color: var(--text-primary);
+}
+
+.file-browser-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.file-browser-sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.file-browser-sort label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.file-browser-sort-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.file-browser-sort-dir {
+    padding: 6px 10px;
+}
+
+.sort-icon {
+    font-size: 14px;
+}
+
+.file-browser-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    min-height: 200px;
+}
+
+.file-browser-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.file-item {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+    position: relative;
+}
+
+.file-item:hover {
+    border-color: var(--accent-color);
+    background: var(--bg-hover);
+}
+
+.file-item-thumbnail {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: white;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.file-item-thumbnail svg {
+    width: 100%;
+    height: 100%;
+}
+
+.file-item-placeholder {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-panel);
+    border-radius: 4px;
+}
+
+.file-item-info {
+    min-width: 0;
+}
+
+.file-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.file-item-date {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.file-item-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--bg-dark);
+    border: none;
+    color: var(--text-secondary);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.file-item:hover .file-item-delete {
+    opacity: 1;
+}
+
+.file-item-delete:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+.file-browser-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.file-browser-empty p {
+    margin: 8px 0;
+}
+
+.file-browser-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-start;
 }

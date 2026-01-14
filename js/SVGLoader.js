@@ -1,29 +1,6 @@
 class SVGLoader {
     constructor(canvas) {
         this.canvas = canvas;
-        this.setupFileInput();
-        this.setupSaveButton();
-    }
-
-    setupFileInput() {
-        const fileInput = document.getElementById('file-input');
-        const loadBtn = document.getElementById('btn-load');
-
-        loadBtn.addEventListener('click', () => fileInput.click());
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                this.loadFile(file);
-            }
-            fileInput.value = '';
-        });
-    }
-
-    setupSaveButton() {
-        document.getElementById('btn-save').addEventListener('click', () => {
-            this.exportSVG();
-        });
     }
 
     loadFile(file) {
@@ -95,6 +72,8 @@ class SVGLoader {
             const points = this.parsePointsString(pointsStr);
 
             if (points.length >= 2) {
+                // Close the polygon by duplicating the first point at the end
+                points.push({ ...points[0] });
                 const shape = new Polyline(points);
                 this.applyCommonAttributes(shape, polygon);
                 this.canvas.addShape(shape);

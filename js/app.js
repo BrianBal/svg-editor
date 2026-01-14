@@ -3,7 +3,7 @@ class App {
         this.init();
     }
 
-    init() {
+    async init() {
         this.canvas = new SVGCanvas();
 
         const tools = {
@@ -22,12 +22,72 @@ class App {
 
         this.loader = new SVGLoader(this.canvas);
 
+        // Initialize file management
+        await fileDatabase.init();
+        this.fileManager = new FileManager(this.canvas);
+        this.fileBrowser = new FileBrowserDialog(this.fileManager);
+
         this.zoom = 100;
         this.setupSizeControls();
         this.setupZoomControls();
         this.setupKeyboardShortcuts();
+        this.setupFileManagement();
 
         console.log('SVG Editor initialized');
+    }
+
+    setupFileManagement() {
+        const openBtn = document.getElementById('btn-open');
+        const exportBtn = document.getElementById('btn-export');
+        const fileNameInput = document.getElementById('file-name');
+        const saveStatus = document.getElementById('save-status');
+
+        openBtn.addEventListener('click', () => {
+            this.fileBrowser.open();
+        });
+
+        exportBtn.addEventListener('click', () => {
+            this.fileManager.exportToFile();
+        });
+
+        let renameTimeout = null;
+        fileNameInput.addEventListener('input', () => {
+            if (renameTimeout) clearTimeout(renameTimeout);
+            renameTimeout = setTimeout(() => {
+                if (this.fileManager.currentFileId) {
+                    this.fileManager.renameFile(this.fileManager.currentFileId, fileNameInput.value);
+                }
+            }, 500);
+        });
+
+        fileNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                fileNameInput.blur();
+            }
+        });
+
+        eventBus.on('file:opened', ({ id, name }) => {
+            fileNameInput.value = name;
+            this.fileManager.setCurrentFileName(name);
+        });
+
+        eventBus.on('file:renamed', ({ id, name }) => {
+            if (id === this.fileManager.currentFileId) {
+                fileNameInput.value = name;
+                this.fileManager.setCurrentFileName(name);
+            }
+        });
+
+        eventBus.on('file:status', (status) => {
+            saveStatus.className = 'save-status ' + status;
+            if (status === 'saving') {
+                saveStatus.textContent = 'Saving...';
+            } else if (status === 'saved') {
+                saveStatus.textContent = 'Saved';
+            } else {
+                saveStatus.textContent = '';
+            }
+        });
     }
 
     setupSizeControls() {
@@ -127,11 +187,16 @@ class App {
 
         // Initialize canvas position on load
         updateZoom(100);
+
+        // Update container dimensions when a new file is loaded
+        eventBus.on('canvas:loaded', () => {
+            updateZoom(this.zoom);
+        });
     }
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             const moveAmount = e.shiftKey ? 10 : 1;
 
@@ -152,37 +217,54 @@ class App {
 
                 case 'v':
                 case 'V':
-                    appState.setTool('select');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('select');
+                    }
                     break;
 
                 case 'p':
                 case 'P':
-                    appState.setTool('polyline');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('polyline');
+                    }
                     break;
 
                 case 'r':
                 case 'R':
-                    appState.setTool('rectangle');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('rectangle');
+                    }
                     break;
 
                 case 'e':
                 case 'E':
-                    appState.setTool('ellipse');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('ellipse');
+                    }
                     break;
 
                 case 'l':
                 case 'L':
-                    appState.setTool('line');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('line');
+                    }
                     break;
 
                 case 's':
                 case 'S':
-                    appState.setTool('star');
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        this.fileManager.saveCurrentFile();
+                    } else {
+                        appState.setTool('star');
+                    }
                     break;
 
                 case 't':
                 case 'T':
-                    appState.setTool('text');
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('text');
+                    }
                     break;
 
                 case 'ArrowUp':
