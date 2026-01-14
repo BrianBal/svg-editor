@@ -1,0 +1,145 @@
+class Selection {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.handlesLayer = document.getElementById('handles-layer');
+        this.handleSize = 8;
+        this.activeHandle = null;
+        this.selectedPointIndex = null;
+
+        eventBus.on('shape:selected', (shape) => this.showHandles(shape));
+        eventBus.on('shape:deselected', () => this.hideHandles());
+        eventBus.on('shape:updated', (shape) => {
+            if (appState.selectedShapeId === shape.id) {
+                this.showHandles(shape);
+            }
+        });
+    }
+
+    showHandles(shape) {
+        this.clear();
+        if (!shape) return;
+
+        if (shape.type === 'rectangle' || shape.type === 'ellipse' || shape.type === 'star' || shape.type === 'text') {
+            this.showBoundsHandles(shape);
+        } else if (shape.type === 'polyline') {
+            this.showPolylineHandles(shape);
+        } else if (shape.type === 'line') {
+            this.showLineHandles(shape);
+        }
+
+        this.showSelectionOutline(shape);
+    }
+
+    showBoundsHandles(shape) {
+        const bounds = shape.getBounds();
+        const positions = [
+            { name: 'nw', x: bounds.x, y: bounds.y },
+            { name: 'n', x: bounds.x + bounds.width / 2, y: bounds.y },
+            { name: 'ne', x: bounds.x + bounds.width, y: bounds.y },
+            { name: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
+            { name: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+            { name: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
+            { name: 'sw', x: bounds.x, y: bounds.y + bounds.height },
+            { name: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
+        ];
+
+        positions.forEach(pos => {
+            const handle = this.createHandle(pos.x, pos.y, pos.name, 'resize');
+            this.handlesLayer.appendChild(handle);
+        });
+    }
+
+    showLineHandles(shape) {
+        const handle1 = this.createHandle(shape.x1, shape.y1, 0, 'point');
+        const handle2 = this.createHandle(shape.x2, shape.y2, 1, 'point');
+        this.handlesLayer.appendChild(handle1);
+        this.handlesLayer.appendChild(handle2);
+    }
+
+    showPolylineHandles(shape) {
+        shape.points.forEach((point, index) => {
+            const handle = this.createHandle(point.x, point.y, index, 'point');
+            if (index === this.selectedPointIndex) {
+                handle.setAttribute('fill', '#ff6b6b');
+            }
+            this.handlesLayer.appendChild(handle);
+        });
+    }
+
+    createHandle(x, y, data, type) {
+        const handle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const halfSize = this.handleSize / 2;
+
+        handle.setAttribute('x', x - halfSize);
+        handle.setAttribute('y', y - halfSize);
+        handle.setAttribute('width', this.handleSize);
+        handle.setAttribute('height', this.handleSize);
+        handle.setAttribute('fill', '#4a90d9');
+        handle.setAttribute('stroke', '#ffffff');
+        handle.setAttribute('stroke-width', '1');
+        handle.classList.add('handle', `handle-${type}`);
+        handle.dataset.handleData = data;
+        handle.dataset.handleType = type;
+        handle.style.cursor = this.getCursor(data, type);
+
+        return handle;
+    }
+
+    getCursor(data, type) {
+        if (type === 'point') return 'move';
+        const cursors = {
+            'nw': 'nwse-resize', 'se': 'nwse-resize',
+            'ne': 'nesw-resize', 'sw': 'nesw-resize',
+            'n': 'ns-resize', 's': 'ns-resize',
+            'e': 'ew-resize', 'w': 'ew-resize'
+        };
+        return cursors[data] || 'pointer';
+    }
+
+    showSelectionOutline(shape) {
+        const bounds = shape.getBounds();
+        const padding = 2;
+
+        const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        outline.setAttribute('x', bounds.x - padding);
+        outline.setAttribute('y', bounds.y - padding);
+        outline.setAttribute('width', bounds.width + padding * 2);
+        outline.setAttribute('height', bounds.height + padding * 2);
+        outline.setAttribute('fill', 'none');
+        outline.setAttribute('stroke', '#4a90d9');
+        outline.setAttribute('stroke-width', '1');
+        outline.setAttribute('stroke-dasharray', '4 2');
+        outline.classList.add('selection-outline');
+        outline.style.pointerEvents = 'none';
+
+        this.handlesLayer.appendChild(outline);
+    }
+
+    hideHandles() {
+        this.clear();
+        this.selectedPointIndex = null;
+    }
+
+    clear() {
+        this.handlesLayer.innerHTML = '';
+    }
+
+    selectPoint(index) {
+        this.selectedPointIndex = index;
+        const shape = appState.getSelectedShape();
+        if (shape) {
+            this.showHandles(shape);
+        }
+    }
+
+    getSelectedPointIndex() {
+        return this.selectedPointIndex;
+    }
+
+    updateHandles() {
+        const shape = appState.getSelectedShape();
+        if (shape) {
+            this.showHandles(shape);
+        }
+    }
+}

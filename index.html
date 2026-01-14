@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Editor</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="app-title">SVG Editor</div>
+            <div class="file-actions">
+                <button id="btn-load" class="btn">Load SVG</button>
+                <button id="btn-save" class="btn">Save SVG</button>
+                <input type="file" id="file-input" accept=".svg" hidden>
+            </div>
+        </header>
+
+        <!-- Main Content - Three Panel Layout -->
+        <main class="main-content">
+            <!-- Left Panel: Layers -->
+            <aside class="panel panel-left" id="layers-panel">
+                <div class="panel-header">
+                    <h2>Layers</h2>
+                </div>
+                <div class="panel-content">
+                    <ul id="layers-list" class="layers-list"></ul>
+                </div>
+            </aside>
+
+            <!-- Center Panel: SVG Canvas -->
+            <section class="panel panel-center" id="canvas-panel">
+                <div class="canvas-wrapper" id="canvas-wrapper">
+                    <div class="canvas-container" id="canvas-container">
+                        <svg id="svg-canvas"
+                             xmlns="http://www.w3.org/2000/svg"
+                             width="800"
+                             height="600"
+                             viewBox="0 0 800 600">
+                            <g id="shapes-layer"></g>
+                            <g id="handles-layer"></g>
+                        </svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Properties + Tools -->
+            <aside class="panel panel-right" id="tools-panel">
+                <div class="panel-right-main">
+                    <div class="panel-content">
+                        <!-- Size Section -->
+                        <section class="properties-section" id="size-section" hidden>
+                            <h3>Size</h3>
+                            <div class="property-row">
+                                <div class="property-field">
+                                    <label>W:</label>
+                                    <div class="property-input-wrapper">
+                                        <input type="number" id="shape-width" class="property-input" step="1" min="1">
+                                        <span class="property-suffix">px</span>
+                                    </div>
+                                </div>
+                                <div class="property-field">
+                                    <label>H:</label>
+                                    <div class="property-input-wrapper">
+                                        <input type="number" id="shape-height" class="property-input" step="1" min="1">
+                                        <span class="property-suffix">px</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Position Section -->
+                        <section class="properties-section" id="position-section" hidden>
+                            <h3>Position</h3>
+                            <div class="property-row">
+                                <div class="property-field">
+                                    <label>X:</label>
+                                    <div class="property-input-wrapper">
+                                        <input type="number" id="shape-x" class="property-input" step="1">
+                                        <span class="property-suffix">px</span>
+                                    </div>
+                                </div>
+                                <div class="property-field">
+                                    <label>Y:</label>
+                                    <div class="property-input-wrapper">
+                                        <input type="number" id="shape-y" class="property-input" step="1">
+                                        <span class="property-suffix">px</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Content Section (for text shapes) -->
+                        <section class="properties-section" id="content-section" hidden>
+                            <h3>Content</h3>
+                            <textarea id="text-content" class="text-content-input" rows="3" placeholder="Enter text..."></textarea>
+                        </section>
+
+                        <!-- Appearance Section -->
+                        <section class="properties-section" id="appearance-section" hidden>
+                            <h3>Appearance</h3>
+                            <div class="property-row">
+                                <div class="color-field">
+                                    <span style="color: var(--text-secondary); font-size: 12px;">Stroke</span>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="stroke-color" value="#000000">
+                                    </div>
+                                    <button class="no-color-btn" id="stroke-none-btn">None</button>
+                                </div>
+                            </div>
+                            <div class="property-row">
+                                <div class="color-field">
+                                    <span style="color: var(--text-secondary); font-size: 12px; min-width: 36px;">Fill</span>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="fill-color" value="#ffffff">
+                                    </div>
+                                    <button class="no-color-btn" id="fill-none-btn">None</button>
+                                </div>
+                            </div>
+                            <div class="property-row" style="margin-top: 12px;">
+                                <div class="property-field">
+                                    <label>Width:</label>
+                                    <div class="property-input-wrapper">
+                                        <input type="number" id="stroke-width" class="property-input" value="2" min="0" step="0.5">
+                                        <span class="property-suffix">px</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="btn-delete-shape" class="btn-delete">Delete Shape</button>
+                        </section>
+
+                        <!-- Polyline Controls -->
+                        <section class="properties-section" id="polyline-controls" hidden>
+                            <h3>Polyline</h3>
+                            <p class="hint">Click canvas to add points. Double-click to finish.</p>
+                            <div class="property-row">
+                                <button id="btn-add-point" class="btn" style="flex: 1;">Add Point</button>
+                                <button id="btn-remove-point" class="btn" style="flex: 1;">Remove Point</button>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Tool Icons Sidebar -->
+                <div class="panel-right-tools">
+                    <button class="tool-btn-icon active" data-tool="select" title="Select (V)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4l7 17 2.5-6.5L20 12 4 4z"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="rectangle" title="Rectangle (R)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="6" width="16" height="12" rx="1"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="ellipse" title="Ellipse (E)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="12" rx="9" ry="6"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="line" title="Line (L)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="19" x2="19" y2="5"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="polyline" title="Polyline (P)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="4,18 9,8 15,14 20,6"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="star" title="Star (S)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn-icon" data-tool="text" title="Text (T)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 4h12M12 4v16M8 20h8"/>
+                        </svg>
+                    </button>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Bottom Bar -->
+        <footer class="app-footer">
+            <div class="footer-controls">
+                <div class="svg-settings">
+                    <label>W: <input type="number" id="svg-width" value="800"></label>
+                    <label>H: <input type="number" id="svg-height" value="600"></label>
+                    <label>ViewBox: <input type="text" id="svg-viewbox" value="0 0 800 600"></label>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+                    <input type="range" id="zoom-slider" min="10" max="400" value="100">
+                    <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+                    <span class="zoom-value" id="zoom-value">100%</span>
+                    <button class="zoom-btn" id="zoom-fit" title="Fit to View">Fit</button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/EventBus.js"></script>
+    <script src="js/State.js"></script>
+    <script src="js/Shape.js"></script>
+    <script src="js/Polyline.js"></script>
+    <script src="js/Rectangle.js"></script>
+    <script src="js/Ellipse.js"></script>
+    <script src="js/Line.js"></script>
+    <script src="js/Star.js"></script>
+    <script src="js/TextShape.js"></script>
+    <script src="js/Selection.js"></script>
+    <script src="js/SVGCanvas.js"></script>
+    <script src="js/SelectTool.js"></script>
+    <script src="js/PolylineTool.js"></script>
+    <script src="js/RectangleTool.js"></script>
+    <script src="js/EllipseTool.js"></script>
+    <script src="js/LineTool.js"></script>
+    <script src="js/StarTool.js"></script>
+    <script src="js/TextTool.js"></script>
+    <script src="js/LayersPanel.js"></script>
+    <script src="js/ToolsPanel.js"></script>
+    <script src="js/SVGLoader.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
