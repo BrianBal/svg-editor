@@ -3,8 +3,18 @@
   "version": "1.0.0",
   "description": "A simple SVG editor with polylines and rectangles",
   "scripts": {
-    "start": "npx http-server -o -c-1"
+    "start": "npx http-server -o -c-1",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "keywords": ["svg", "editor"],
-  "license": "MIT"
+  "keywords": [
+    "svg",
+    "editor"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.17",
+    "happy-dom": "^20.3.0",
+    "vitest": "^4.0.17"
+  }
 }

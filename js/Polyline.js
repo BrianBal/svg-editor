@@ -1,4 +1,57 @@
 class Polyline extends Shape {
+    static get properties() {
+        const baseProps = Shape.properties;
+        return {
+            ...baseProps,
+            // Hide width/height for polylines (point-based only)
+            width: { ...baseProps.width, hidden: true },
+            height: { ...baseProps.height, hidden: true },
+
+            // Polyline-specific properties
+            pointCount: {
+                type: 'number',
+                label: 'Points',
+                group: 'polyline',
+                readonly: true,
+                get: (shape) => shape.points.length
+            },
+            addPoint: {
+                type: 'button',
+                label: 'Add Point',
+                group: 'polyline',
+                action: (shape) => {
+                    const canvas = window.app?.canvas;
+                    if (canvas) {
+                        const selectedIndex = canvas.selection.getSelectedPointIndex();
+                        if (selectedIndex !== null && selectedIndex < shape.points.length - 1) {
+                            shape.addPointBetween(selectedIndex);
+                        } else if (shape.points.length >= 2) {
+                            shape.addPointBetween(shape.points.length - 2);
+                        }
+                    }
+                }
+            },
+            removePoint: {
+                type: 'button',
+                label: 'Remove Point',
+                group: 'polyline',
+                action: (shape) => {
+                    const canvas = window.app?.canvas;
+                    if (canvas) {
+                        const selectedIndex = canvas.selection.getSelectedPointIndex();
+                        if (selectedIndex !== null) {
+                            if (shape.removePoint(selectedIndex)) {
+                                canvas.selection.selectPoint(null);
+                            }
+                        } else {
+                            shape.removeLastPoint();
+                        }
+                    }
+                }
+            },
+        };
+    }
+
     constructor(points = []) {
         super('polyline');
         this.points = points;

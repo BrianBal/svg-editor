@@ -1,10 +1,33 @@
 class Rectangle extends Shape {
+    static get properties() {
+        return {
+            ...Shape.properties,
+            // Rectangle-specific properties
+            cornerRadius: {
+                type: 'number',
+                label: 'Corner Radius',
+                group: 'rectangle',
+                suffix: 'px',
+                min: 0,
+                get: (shape) => shape.rx || 0,
+                set: (shape, value) => shape.setCornerRadius(value)
+            },
+        };
+    }
+
     constructor(x = 0, y = 0, width = 100, height = 100) {
         super('rectangle');
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        this.rx = 0; // Corner radius
+    }
+
+    setCornerRadius(value) {
+        this.rx = Math.max(0, value);
+        this.updateElement();
+        eventBus.emit('shape:updated', this);
     }
 
     createSVGElement() {
@@ -14,6 +37,10 @@ class Rectangle extends Shape {
         el.setAttribute('y', this.y);
         el.setAttribute('width', this.width);
         el.setAttribute('height', this.height);
+        if (this.rx > 0) {
+            el.setAttribute('rx', this.rx);
+            el.setAttribute('ry', this.rx);
+        }
         this.applyAttributes(el);
         this.element = el;
         return el;
@@ -25,6 +52,13 @@ class Rectangle extends Shape {
             this.element.setAttribute('y', this.y);
             this.element.setAttribute('width', this.width);
             this.element.setAttribute('height', this.height);
+            if (this.rx > 0) {
+                this.element.setAttribute('rx', this.rx);
+                this.element.setAttribute('ry', this.rx);
+            } else {
+                this.element.removeAttribute('rx');
+                this.element.removeAttribute('ry');
+            }
         }
     }
 
@@ -57,6 +91,7 @@ class Rectangle extends Shape {
 
     clone(offset = 10) {
         const copy = new Rectangle(this.x + offset, this.y + offset, this.width, this.height);
+        copy.rx = this.rx;
         this.copyAttributesTo(copy);
         return copy;
     }

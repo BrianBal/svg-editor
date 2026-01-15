@@ -496,6 +496,57 @@ html, body {
     margin-bottom: 14px;
 }
 
+/* Collapsible section header */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+    margin: -4px 0 10px 0;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+}
+
+.section-header:hover {
+    background-color: var(--bg-hover);
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.section-chevron {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.properties-section.collapsed .section-chevron {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    overflow: hidden;
+    transition: max-height 0.2s ease-out, opacity 0.2s;
+    max-height: 1000px;
+    opacity: 1;
+}
+
+.properties-section.collapsed .section-content {
+    max-height: 0;
+    opacity: 0;
+}
+
+.properties-section.collapsed {
+    padding-bottom: 8px;
+}
+
+.properties-section.collapsed .section-header {
+    margin-bottom: 0;
+}
+
 .property-row {
     display: flex;
     align-items: center;
@@ -549,6 +600,52 @@ html, body {
     font-size: 11px;
     color: var(--text-muted);
     pointer-events: none;
+}
+
+/* Property select dropdown */
+.property-select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.property-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Property range slider */
+.property-field input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.property-field input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.property-field input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
 }
 
 .property-checkbox {

@@ -1,4 +1,44 @@
 class TextShape extends Shape {
+    static get properties() {
+        return {
+            ...Shape.properties,
+            // Text-specific properties
+            text: {
+                type: 'textarea',
+                label: 'Content',
+                group: 'text',
+                rows: 3,
+                get: (shape) => shape.text,
+                set: (shape, value) => shape.setText(value)
+            },
+            fontFamily: {
+                type: 'select',
+                label: 'Font',
+                group: 'text',
+                options: [
+                    { value: 'Arial', label: 'Arial' },
+                    { value: 'Helvetica', label: 'Helvetica' },
+                    { value: 'Georgia', label: 'Georgia' },
+                    { value: 'Times New Roman', label: 'Times' },
+                    { value: 'Courier New', label: 'Courier' },
+                    { value: 'Verdana', label: 'Verdana' },
+                ],
+                get: (shape) => shape.fontFamily,
+                set: (shape, value) => shape.setFontFamily(value)
+            },
+            fontSize: {
+                type: 'number',
+                label: 'Size',
+                group: 'text',
+                suffix: 'px',
+                min: 8,
+                max: 200,
+                get: (shape) => shape.fontSize,
+                set: (shape, value) => shape.setFontSize(value)
+            },
+        };
+    }
+
     constructor(x = 0, y = 0, text = 'Text', fontSize = 24, fontFamily = 'Arial') {
         super('text');
         this.x = x;

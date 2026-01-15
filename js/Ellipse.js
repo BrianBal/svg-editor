@@ -1,4 +1,37 @@
 class Ellipse extends Shape {
+    static get properties() {
+        return {
+            ...Shape.properties,
+            // Ellipse-specific properties
+            radiusX: {
+                type: 'number',
+                label: 'Radius X',
+                group: 'ellipse',
+                suffix: 'px',
+                min: 1,
+                get: (shape) => Math.round(shape.rx),
+                set: (shape, value) => {
+                    shape.rx = Math.max(1, value);
+                    shape.updateElement();
+                    eventBus.emit('shape:updated', shape);
+                }
+            },
+            radiusY: {
+                type: 'number',
+                label: 'Radius Y',
+                group: 'ellipse',
+                suffix: 'px',
+                min: 1,
+                get: (shape) => Math.round(shape.ry),
+                set: (shape, value) => {
+                    shape.ry = Math.max(1, value);
+                    shape.updateElement();
+                    eventBus.emit('shape:updated', shape);
+                }
+            },
+        };
+    }
+
     constructor(cx = 0, cy = 0, rx = 50, ry = 50) {
         super('ellipse');
         this.cx = cx;

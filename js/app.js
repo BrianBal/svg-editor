@@ -18,7 +18,7 @@ class App {
         this.canvas.setTools(tools);
 
         this.layersPanel = new LayersPanel(this.canvas);
-        this.toolsPanel = new ToolsPanel(this.canvas);
+        this.propertiesPanel = new PropertiesPanel(this.canvas);
 
         this.loader = new SVGLoader(this.canvas);
 
@@ -28,7 +28,6 @@ class App {
         this.fileBrowser = new FileBrowserDialog(this.fileManager);
 
         this.zoom = 100;
-        this.setupSizeControls();
         this.setupZoomControls();
         this.setupKeyboardShortcuts();
         this.setupFileManagement();
@@ -88,23 +87,6 @@ class App {
                 saveStatus.textContent = '';
             }
         });
-    }
-
-    setupSizeControls() {
-        const widthInput = document.getElementById('svg-width');
-        const heightInput = document.getElementById('svg-height');
-        const viewBoxInput = document.getElementById('svg-viewbox');
-
-        const updateSize = () => {
-            const width = widthInput.value;
-            const height = heightInput.value;
-            const viewBox = viewBoxInput.value;
-            this.canvas.updateSize(width, height, viewBox);
-        };
-
-        widthInput.addEventListener('change', updateSize);
-        heightInput.addEventListener('change', updateSize);
-        viewBoxInput.addEventListener('change', updateSize);
     }
 
     setupZoomControls() {

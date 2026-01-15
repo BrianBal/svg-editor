@@ -4,6 +4,7 @@ class SVGCanvas {
         this.shapesLayer = document.getElementById('shapes-layer');
         this.handlesLayer = document.getElementById('handles-layer');
         this.selection = new Selection(this);
+        this.backgroundRect = null;
 
         this.isDragging = false;
         this.dragStart = { x: 0, y: 0 };
@@ -11,7 +12,26 @@ class SVGCanvas {
         this.activeTool = null;
         this.tools = {};
 
+        this.createBackgroundRect();
         this.setupEventListeners();
+    }
+
+    createBackgroundRect() {
+        this.backgroundRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        this.backgroundRect.setAttribute('id', 'canvas-background');
+        this.backgroundRect.setAttribute('x', '0');
+        this.backgroundRect.setAttribute('y', '0');
+        this.backgroundRect.setAttribute('width', appState.svgWidth);
+        this.backgroundRect.setAttribute('height', appState.svgHeight);
+        this.backgroundRect.setAttribute('fill', appState.background === 'none' ? 'transparent' : appState.background);
+        // Insert as first child of svg (before shapes-layer)
+        this.svg.insertBefore(this.backgroundRect, this.shapesLayer);
+    }
+
+    setBackground(color) {
+        if (this.backgroundRect) {
+            this.backgroundRect.setAttribute('fill', color === 'none' ? 'transparent' : color);
+        }
     }
 
     setTools(tools) {
@@ -35,6 +55,10 @@ class SVGCanvas {
         eventBus.on('tool:changed', (toolName) => {
             this.activeTool = this.tools[toolName];
             this.svg.classList.toggle('tool-select', toolName === 'select');
+        });
+
+        eventBus.on('document:background', (color) => {
+            this.setBackground(color);
         });
     }
 
@@ -228,6 +252,12 @@ class SVGCanvas {
         appState.svgWidth = parseInt(width);
         appState.svgHeight = parseInt(height);
         appState.viewBox = viewBox;
+
+        // Update background rect to match new size
+        if (this.backgroundRect) {
+            this.backgroundRect.setAttribute('width', width);
+            this.backgroundRect.setAttribute('height', height);
+        }
     }
 
     reorderShapeDOM(shapeId, newIndex) {

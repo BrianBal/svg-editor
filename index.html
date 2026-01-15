@@ -53,98 +53,8 @@
             <!-- Right Panel: Properties + Tools -->
             <aside class="panel panel-right" id="tools-panel">
                 <div class="panel-right-main">
-                    <div class="panel-content">
-                        <!-- Size Section -->
-                        <section class="properties-section" id="size-section" hidden>
-                            <h3>Size</h3>
-                            <div class="property-row">
-                                <div class="property-field">
-                                    <label>W:</label>
-                                    <div class="property-input-wrapper">
-                                        <input type="number" id="shape-width" class="property-input" step="1" min="1">
-                                        <span class="property-suffix">px</span>
-                                    </div>
-                                </div>
-                                <div class="property-field">
-                                    <label>H:</label>
-                                    <div class="property-input-wrapper">
-                                        <input type="number" id="shape-height" class="property-input" step="1" min="1">
-                                        <span class="property-suffix">px</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Position Section -->
-                        <section class="properties-section" id="position-section" hidden>
-                            <h3>Position</h3>
-                            <div class="property-row">
-                                <div class="property-field">
-                                    <label>X:</label>
-                                    <div class="property-input-wrapper">
-                                        <input type="number" id="shape-x" class="property-input" step="1">
-                                        <span class="property-suffix">px</span>
-                                    </div>
-                                </div>
-                                <div class="property-field">
-                                    <label>Y:</label>
-                                    <div class="property-input-wrapper">
-                                        <input type="number" id="shape-y" class="property-input" step="1">
-                                        <span class="property-suffix">px</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Content Section (for text shapes) -->
-                        <section class="properties-section" id="content-section" hidden>
-                            <h3>Content</h3>
-                            <textarea id="text-content" class="text-content-input" rows="3" placeholder="Enter text..."></textarea>
-                        </section>
-
-                        <!-- Appearance Section -->
-                        <section class="properties-section" id="appearance-section" hidden>
-                            <h3>Appearance</h3>
-                            <div class="property-row">
-                                <div class="color-field">
-                                    <span style="color: var(--text-secondary); font-size: 12px;">Stroke</span>
-                                    <div class="color-input-wrapper">
-                                        <input type="color" id="stroke-color" value="#000000">
-                                    </div>
-                                    <button class="no-color-btn" id="stroke-none-btn">None</button>
-                                </div>
-                            </div>
-                            <div class="property-row">
-                                <div class="color-field">
-                                    <span style="color: var(--text-secondary); font-size: 12px; min-width: 36px;">Fill</span>
-                                    <div class="color-input-wrapper">
-                                        <input type="color" id="fill-color" value="#ffffff">
-                                    </div>
-                                    <button class="no-color-btn" id="fill-none-btn">None</button>
-                                </div>
-                            </div>
-                            <div class="property-row" style="margin-top: 12px;">
-                                <div class="property-field">
-                                    <label>Width:</label>
-                                    <div class="property-input-wrapper">
-                                        <input type="number" id="stroke-width" class="property-input" value="2" min="0" step="0.5">
-                                        <span class="property-suffix">px</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button id="btn-delete-shape" class="btn-delete">Delete Shape</button>
-                        </section>
-
-                        <!-- Polyline Controls -->
-                        <section class="properties-section" id="polyline-controls" hidden>
-                            <h3>Polyline</h3>
-                            <p class="hint">Click canvas to add points. Double-click to finish.</p>
-                            <div class="property-row">
-                                <button id="btn-add-point" class="btn" style="flex: 1;">Add Point</button>
-                                <button id="btn-remove-point" class="btn" style="flex: 1;">Remove Point</button>
-                            </div>
-                        </section>
-                    </div>
+                    <!-- Properties are rendered dynamically by PropertiesPanel -->
+                    <div id="properties-content" class="panel-content"></div>
                 </div>
 
                 <!-- Tool Icons Sidebar -->
@@ -191,11 +101,6 @@
         <!-- Bottom Bar -->
         <footer class="app-footer">
             <div class="footer-controls">
-                <div class="svg-settings">
-                    <label>W: <input type="number" id="svg-width" value="800"></label>
-                    <label>H: <input type="number" id="svg-height" value="600"></label>
-                    <label>ViewBox: <input type="text" id="svg-viewbox" value="0 0 800 600"></label>
-                </div>
                 <div class="zoom-controls">
                     <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
                     <input type="range" id="zoom-slider" min="10" max="400" value="100">
@@ -228,7 +133,7 @@
     <script src="js/StarTool.js"></script>
     <script src="js/TextTool.js"></script>
     <script src="js/LayersPanel.js"></script>
-    <script src="js/ToolsPanel.js"></script>
+    <script src="js/PropertiesPanel.js"></script>
     <script src="js/SVGLoader.js"></script>
     <script src="js/FileManager.js"></script>
     <script src="js/FileBrowserDialog.js"></script>

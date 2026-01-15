@@ -198,12 +198,30 @@ class FileManager {
 
     async saveCurrentFile() {
         if (!this.currentFileId) {
-            return this.newFile();
+            // Create a new file with current content (don't clear canvas)
+            const file = {
+                name: 'Untitled',
+                content: this.getSVGContent(),
+                width: appState.svgWidth,
+                height: appState.svgHeight,
+                viewBox: appState.viewBox,
+                thumbnail: this.generateThumbnail()
+            };
+
+            const id = await fileDatabase.saveFile(file);
+            this.currentFileId = id;
+            this.isDirty = false;
+
+            eventBus.emit('file:opened', { id, name: file.name });
+            this.updateSaveStatus('saved');
+            return;
         }
 
         const file = await fileDatabase.getFile(this.currentFileId);
         if (!file) {
-            return this.newFile();
+            // File was deleted externally, create new file for current content
+            this.currentFileId = null;
+            return this.saveCurrentFile();
         }
 
         file.content = this.getSVGContent();

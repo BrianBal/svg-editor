@@ -6,11 +6,17 @@ class State {
         this.svgWidth = 800;
         this.svgHeight = 600;
         this.viewBox = '0 0 800 600';
+        this.background = 'none';
 
         // Default colors for new shapes
         this.defaultStroke = '#000000';
         this.defaultFill = 'none';
         this.defaultStrokeWidth = 2;
+    }
+
+    setBackground(color) {
+        this.background = color;
+        eventBus.emit('document:background', color);
     }
 
     addShape(shape) {

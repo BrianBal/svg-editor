@@ -1,4 +1,39 @@
 class Star extends Shape {
+    static get properties() {
+        return {
+            ...Shape.properties,
+            // Star-specific properties
+            points: {
+                type: 'number',
+                label: 'Points',
+                group: 'star',
+                min: 3,
+                max: 20,
+                step: 1,
+                get: (shape) => shape.points,
+                set: (shape, value) => {
+                    shape.points = value;
+                    shape.updateElement();
+                    eventBus.emit('shape:updated', shape);
+                }
+            },
+            innerRadius: {
+                type: 'range',
+                label: 'Inner Radius',
+                group: 'star',
+                min: 10,
+                max: 90,
+                suffix: '%',
+                get: (shape) => Math.round((shape.innerRadius / shape.outerRadius) * 100),
+                set: (shape, value) => {
+                    shape.innerRadius = shape.outerRadius * (value / 100);
+                    shape.updateElement();
+                    eventBus.emit('shape:updated', shape);
+                }
+            },
+        };
+    }
+
     constructor(cx = 0, cy = 0, outerRadius = 50, innerRadius = 25, points = 5) {
         super('star');
         this.cx = cx;

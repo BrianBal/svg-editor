@@ -1,4 +1,40 @@
 class Line extends Shape {
+    static get properties() {
+        const baseProps = Shape.properties;
+        return {
+            ...baseProps,
+            // Hide width/height for lines (point-based)
+            width: { ...baseProps.width, hidden: true },
+            height: { ...baseProps.height, hidden: true },
+
+            // Line-specific properties
+            length: {
+                type: 'number',
+                label: 'Length',
+                group: 'line',
+                suffix: 'px',
+                readonly: true,
+                get: (shape) => {
+                    const dx = shape.x2 - shape.x1;
+                    const dy = shape.y2 - shape.y1;
+                    return Math.round(Math.sqrt(dx * dx + dy * dy));
+                }
+            },
+            angle: {
+                type: 'number',
+                label: 'Angle',
+                group: 'line',
+                suffix: '°',
+                readonly: true,
+                get: (shape) => {
+                    const dx = shape.x2 - shape.x1;
+                    const dy = shape.y2 - shape.y1;
+                    return Math.round(Math.atan2(dy, dx) * 180 / Math.PI);
+                }
+            },
+        };
+    }
+
     constructor(x1 = 0, y1 = 0, x2 = 100, y2 = 100) {
         super('line');
         this.x1 = x1;
