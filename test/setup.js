@@ -24,6 +24,7 @@ const files = [
     { file: 'HistoryManager.js', className: 'HistoryManager' },
     { file: 'ClipboardManager.js', className: 'ClipboardManager' },
     { file: 'PenTool.js', className: 'PenTool' },
+    { file: 'CommandPalette.js', className: 'CommandPalette' },
 ];
 
 // Load each file and extract the class into globalThis

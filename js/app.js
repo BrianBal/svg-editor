@@ -27,6 +27,7 @@ class App {
         await fileDatabase.init();
         this.fileManager = new FileManager(this.canvas);
         this.fileBrowser = new FileBrowserDialog(this.fileManager);
+        this.commandPalette = new CommandPalette();
 
         this.zoom = 100;
         this.setupZoomControls();
@@ -210,6 +211,14 @@ class App {
                         } else {
                             historyManager.undo();
                         }
+                    }
+                    break;
+
+                case 'k':
+                case 'K':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        this.commandPalette.toggle();
                     }
                     break;
 

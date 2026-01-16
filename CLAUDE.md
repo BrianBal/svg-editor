@@ -175,6 +175,7 @@ The `PenTool` creates bezier curve paths with control handles:
 - `SVGLoader` - File import/export functionality
 - `HistoryManager` - Undo/redo system exposed as `window.historyManager`
 - `ClipboardManager` - Copy/cut/paste using system clipboard, exposed as `window.clipboardManager`
+- `CommandPalette` - Searchable command palette for quick access to all commands
 - `Gradient` - Gradient data model for linear/radial gradients
 - `GradientManager` - Manages SVG `<defs>` element and gradient elements
 
@@ -203,6 +204,52 @@ The `ClipboardManager` (`js/ClipboardManager.js`) handles copy/cut/paste operati
 - Supports multiple shapes with gradients
 - Preserves stroke, fill, rotation, and other attributes
 - Integrates with undo/redo (shape creation auto-tracked by HistoryManager)
+
+### Command Palette
+
+The `CommandPalette` (`js/CommandPalette.js`) provides a searchable command interface for quick access to all editor features.
+
+#### Keyboard Shortcut
+
+- **Ctrl+K / Cmd+K** - Open command palette
+
+#### Features
+
+- **Fuzzy search**: Type to filter commands, matches prioritized by position in label
+- **Keyboard navigation**: Arrow keys to navigate, Enter to execute, Escape to close
+- **Context-aware**: Commands only appear when available (e.g., alignment requires 2+ shapes selected)
+- **Shortcut display**: Shows keyboard shortcut next to each command
+
+#### Available Commands (32 total)
+
+- **Tools (8)**: Select, Rectangle, Ellipse, Line, Polyline, Pen, Star, Text
+- **Alignment (6)**: Align Left, Center Horizontal, Right, Top, Middle Vertical, Bottom (requires 2+ selected)
+- **Distribute (2)**: Horizontal, Vertical (requires 3+ selected)
+- **Shape Operations (6)**: Delete, Duplicate, Bring Forward, Send Backward, Bring to Front, Send to Back
+- **Flip (2)**: Horizontal, Vertical
+- **File (2)**: Save, Export SVG
+- **View (3)**: Zoom In, Zoom Out, Reset Zoom
+- **Edit (3)**: Undo, Redo, Deselect All
+
+#### Adding New Commands
+
+Commands are registered in `CommandPalette.registerCommands()`:
+```javascript
+this.commands.push({
+    id: 'category:action',
+    label: 'Human Readable Label',
+    shortcut: 'Ctrl+X',  // or null
+    action: () => { /* execute command */ },
+    isAvailable: () => true  // or condition function
+});
+```
+
+#### Alignment Helper Functions
+
+The CommandPalette includes helper functions for alignment operations:
+- `alignShapes(direction)` - Aligns selected shapes (left, right, center-h, top, bottom, middle-v)
+- `distributeShapes(direction)` - Distributes shapes with equal spacing (horizontal, vertical)
+- `reorderShapes(action)` - Changes z-order (bring-forward, send-backward, bring-to-front, send-to-back)
 
 ### Gradient System
 

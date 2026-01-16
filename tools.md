@@ -15,24 +15,12 @@ This document lists SVG capabilities not yet supported, ordered by importance/fr
 - **File ops**: Save/load (IndexedDB), SVG import/export (including gradients, rotation, paths)
 - **Editing**: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, Cmd+Z / Cmd+Shift+Z on Mac)
 - **Clipboard**: Copy/Cut/Paste using system clipboard (Ctrl+C, Ctrl+X, Ctrl+V) - copies as SVG text, supports pasting SVG from external sources
+- **Alignment Tools**: Align (left, center, right, top, middle, bottom) and distribute (horizontal, vertical) for multi-selected shapes
+- **Command Palette**: Searchable command palette (Ctrl+K) with 32 commands for tools, alignment, shape operations, file ops, and more
 
 ---
 
 ## Missing Features
-
-### 5. Alignment Tools
-**Priority: Medium-High**
-
-Essential for precise layouts. Requires multi-select first.
-
-**Suggestion**: Add alignment toolbar/buttons.
-- Align: Left, Center, Right, Top, Middle, Bottom
-- Distribute: Horizontal, Vertical (equal spacing)
-- UI: Row of alignment icons in toolbar or properties panel
-- Works on multi-selected shapes
-- Align to: Selection bounds or canvas
-
----
 
 ### 6. Stroke Dash Pattern (UI Only)
 **Priority: Medium-High**
@@ -444,7 +432,7 @@ Control how sharp corners are rendered when using miter joins.
 **Phase 3 - Advanced Tools** *(Partially Complete)*
 10. ~~Path tool (bezier)~~ ✓
 11. ~~Multi-select~~ ✓ (Shift+click toggle, range select in layers, combined bounds, multi-move/resize/rotate, undo/redo support)
-12. Alignment tools
+12. ~~Alignment tools~~ ✓ (align left/center/right/top/middle/bottom, distribute horizontal/vertical, via command palette)
 13. Grid & snapping
 14. Polygon shape
 
