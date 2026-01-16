@@ -13,13 +13,16 @@ const files = [
     { file: 'Gradient.js', className: 'Gradient' },
     { file: 'GradientManager.js', className: 'GradientManager' },
     { file: 'Shape.js', className: 'Shape' },
+    { file: 'PointBasedShape.js', className: 'PointBasedShape' },
     { file: 'Rectangle.js', className: 'Rectangle' },
     { file: 'Ellipse.js', className: 'Ellipse' },
     { file: 'Star.js', className: 'Star' },
     { file: 'Polyline.js', className: 'Polyline' },
+    { file: 'Path.js', className: 'Path' },
     { file: 'Line.js', className: 'Line' },
     { file: 'TextShape.js', className: 'TextShape' },
     { file: 'HistoryManager.js', className: 'HistoryManager' },
+    { file: 'PenTool.js', className: 'PenTool' },
 ];
 
 // Load each file and extract the class into globalThis

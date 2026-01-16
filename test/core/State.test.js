@@ -115,7 +115,7 @@ describe('State', () => {
 
     describe('deselectAll()', () => {
         it('clears selectedShapeId', () => {
-            state.selectedShapeId = 'shape-1';
+            state.selectShape('shape-1');
 
             state.deselectAll();
 
@@ -147,13 +147,13 @@ describe('State', () => {
         it('returns selected shape when one is selected', () => {
             const shape = { id: 'shape-1' };
             state.shapes = [shape];
-            state.selectedShapeId = 'shape-1';
+            state.selectShape('shape-1');
 
             expect(state.getSelectedShape()).toBe(shape);
         });
 
         it('returns null when nothing selected', () => {
-            state.selectedShapeId = null;
+            state.deselectAll();
 
             expect(state.getSelectedShape()).toBeNull();
         });

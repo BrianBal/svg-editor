@@ -62,6 +62,9 @@ class HistoryManager {
 
     endTransaction() {
         if (!this.pendingTransaction) return;
+        if (this.pendingTransaction.isMulti) {
+            return this.endMultiTransaction();
+        }
 
         clearTimeout(this.transactionTimeout);
 
@@ -80,6 +83,71 @@ class HistoryManager {
                     afterState
                 });
             }
+        }
+
+        this.pendingTransaction = null;
+    }
+
+    // === Multi-Transaction API (for multi-select operations) ===
+
+    beginMultiTransaction(type, targetIds) {
+        // End any existing transaction first
+        if (this.pendingTransaction) {
+            this.endTransaction();
+        }
+
+        const beforeStates = {};
+        for (const id of targetIds) {
+            const target = appState.getShapeById(id);
+            if (target) {
+                beforeStates[id] = this.serializeShape(target);
+            }
+        }
+
+        this.pendingTransaction = {
+            type,
+            targetIds,
+            isMulti: true,
+            beforeStates
+        };
+
+        // Safety timeout to auto-commit abandoned transactions
+        this.transactionTimeout = setTimeout(() => {
+            this.endMultiTransaction();
+        }, this.transactionTimeoutMs);
+    }
+
+    endMultiTransaction() {
+        if (!this.pendingTransaction || !this.pendingTransaction.isMulti) {
+            return;
+        }
+
+        clearTimeout(this.transactionTimeout);
+
+        const { type, targetIds, beforeStates } = this.pendingTransaction;
+        const afterStates = {};
+        let hasChanges = false;
+
+        for (const id of targetIds) {
+            const target = appState.getShapeById(id);
+            if (target) {
+                const afterState = this.serializeShape(target);
+                afterStates[id] = afterState;
+
+                if (!this.statesEqual(beforeStates[id], afterState)) {
+                    hasChanges = true;
+                }
+            }
+        }
+
+        if (hasChanges) {
+            this.pushAction({
+                type,
+                isMulti: true,
+                targetIds,
+                beforeStates,
+                afterStates
+            });
         }
 
         this.pendingTransaction = null;
@@ -188,7 +256,12 @@ class HistoryManager {
 
     applyAction(action, isUndo) {
         const canvas = window.app?.canvas;
-        if (!canvas) return;
+
+        // Handle multi-shape actions
+        if (action.isMulti) {
+            this.applyMultiAction(action, isUndo);
+            return;
+        }
 
         switch (action.type) {
             case 'create':
@@ -204,7 +277,9 @@ class HistoryManager {
                     const shape = this.deserializeShape(action.afterState);
                     shape.id = action.targetId;
                     const element = shape.createSVGElement();
-                    canvas.shapesLayer.appendChild(element);
+                    if (canvas) {
+                        canvas.shapesLayer.appendChild(element);
+                    }
                     appState.addShape(shape);
                 }
                 break;
@@ -215,9 +290,13 @@ class HistoryManager {
                     const shape = this.deserializeShape(action.beforeState);
                     shape.id = action.targetId;
                     const element = shape.createSVGElement();
-                    canvas.shapesLayer.appendChild(element);
+                    if (canvas) {
+                        canvas.shapesLayer.appendChild(element);
+                    }
                     appState.insertShapeAt(shape, action.beforeIndex);
-                    canvas.syncDOMOrder();
+                    if (canvas) {
+                        canvas.syncDOMOrder();
+                    }
                 } else {
                     // Redo delete = delete again
                     const shape = appState.getShapeById(action.targetId);
@@ -249,9 +328,27 @@ class HistoryManager {
         // Update selection handles if shape was modified
         if (['move', 'resize', 'property'].includes(action.type)) {
             const shape = appState.getShapeById(action.targetId);
-            if (shape && appState.selectedShapeId === action.targetId) {
+            if (canvas && shape && appState.isSelected(action.targetId)) {
                 canvas.selection.updateHandles();
             }
+        }
+
+        // Update tracking state
+        this._lastShapeOrder = appState.shapes.map(s => s.id);
+        this._lastBackground = appState.background;
+    }
+
+    applyMultiAction(action, isUndo) {
+        const states = isUndo ? action.beforeStates : action.afterStates;
+
+        for (const [id, state] of Object.entries(states)) {
+            this.applyShapeState(id, state);
+        }
+
+        // Update selection handles if canvas is available
+        const canvas = window.app?.canvas;
+        if (canvas) {
+            canvas.selection.updateHandles();
         }
 
         // Update tracking state
@@ -300,6 +397,15 @@ class HistoryManager {
             case 'polyline':
                 state.points = shape.points.map(p => ({ x: p.x, y: p.y }));
                 break;
+            case 'path':
+                state.points = shape.points.map(p => ({
+                    x: p.x,
+                    y: p.y,
+                    handleIn: p.handleIn ? { x: p.handleIn.x, y: p.handleIn.y } : null,
+                    handleOut: p.handleOut ? { x: p.handleOut.x, y: p.handleOut.y } : null
+                }));
+                state.closed = shape.closed;
+                break;
             case 'star':
                 state.cx = shape.cx;
                 state.cy = shape.cy;
@@ -335,6 +441,17 @@ class HistoryManager {
                 break;
             case 'polyline':
                 shape = new Polyline(state.points.map(p => ({ x: p.x, y: p.y })));
+                break;
+            case 'path':
+                shape = new Path(
+                    state.points.map(p => ({
+                        x: p.x,
+                        y: p.y,
+                        handleIn: p.handleIn ? { ...p.handleIn } : null,
+                        handleOut: p.handleOut ? { ...p.handleOut } : null
+                    })),
+                    state.closed
+                );
                 break;
             case 'star':
                 shape = new Star(state.cx, state.cy, state.outerRadius, state.points, state.innerRadius);
@@ -397,6 +514,15 @@ class HistoryManager {
                 break;
             case 'polyline':
                 shape.points = state.points.map(p => ({ x: p.x, y: p.y }));
+                break;
+            case 'path':
+                shape.points = state.points.map(p => ({
+                    x: p.x,
+                    y: p.y,
+                    handleIn: p.handleIn ? { ...p.handleIn } : null,
+                    handleOut: p.handleOut ? { ...p.handleOut } : null
+                }));
+                shape.closed = state.closed;
                 break;
             case 'star':
                 shape.cx = state.cx;

@@ -334,7 +334,14 @@ class PropertiesPanel {
     }
 
     setupEventListeners() {
-        eventBus.on('shape:selected', () => this.render());
+        // Listen for multi-select changes
+        eventBus.on('selection:changed', () => this.render());
+        // Backwards compatibility
+        eventBus.on('shape:selected', () => {
+            if (appState.selectedShapeIds.length === 1) {
+                this.render();
+            }
+        });
         eventBus.on('shape:deselected', () => this.render());
         eventBus.on('shape:updated', (shape) => this.updateValues(shape));
         eventBus.on('tool:changed', (tool) => this.onToolChanged(tool));
@@ -347,14 +354,14 @@ class PropertiesPanel {
         });
 
         // Re-render panel if no shape selected
-        if (!appState.selectedShapeId) {
+        if (appState.selectedShapeIds.length === 0) {
             this.render();
         }
     }
 
     getContext() {
         return {
-            shape: appState.getSelectedShape(),
+            shapes: appState.getSelectedShapes(),
             tool: appState.activeTool,
         };
     }
@@ -366,10 +373,16 @@ class PropertiesPanel {
 
         let schema, target;
 
-        if (context.shape) {
-            // Shape selected - use shape's properties
-            schema = this.getShapeSchema(context.shape);
-            target = context.shape;
+        if (context.shapes.length > 1) {
+            // Multiple shapes selected - show common properties only
+            schema = this.getCommonSchema(context.shapes);
+            target = context.shapes;  // Pass array of shapes
+            this.renderMultiSelectSchema(schema, target);
+            return;
+        } else if (context.shapes.length === 1) {
+            // Single shape selected - use shape's properties
+            schema = this.getShapeSchema(context.shapes[0]);
+            target = context.shapes[0];
         } else if (this.drawingTools.includes(context.tool)) {
             // Drawing tool active - show defaults only
             schema = { ...DefaultStyleProperties };
@@ -390,6 +403,149 @@ class PropertiesPanel {
         }
         // Fall back to base properties
         return BaseShapeProperties;
+    }
+
+    // Get properties common to all selected shapes with matching values
+    getCommonSchema(shapes) {
+        if (shapes.length === 0) return {};
+
+        // Use base shape properties as starting point
+        const baseSchema = BaseShapeProperties;
+        const commonSchema = {};
+
+        // Shape-specific property groups to exclude for mixed types
+        const shapeSpecificGroups = ['rectangle', 'ellipse', 'star', 'text', 'polyline', 'line', 'path'];
+
+        // Check if all shapes are the same type
+        const types = new Set(shapes.map(s => s.type));
+        const allSameType = types.size === 1;
+
+        for (const [key, prop] of Object.entries(baseSchema)) {
+            // Skip shape-specific properties if types differ
+            if (!allSameType && shapeSpecificGroups.includes(prop.group)) {
+                continue;
+            }
+
+            // Check if all shapes have the same value for this property
+            const firstValue = this.getValue(key, prop, shapes[0]);
+            const allSame = shapes.every(shape => {
+                const value = this.getValue(key, prop, shape);
+                return this.valuesEqual(firstValue, value);
+            });
+
+            if (allSame) {
+                commonSchema[key] = prop;
+            }
+        }
+
+        return commonSchema;
+    }
+
+    // Compare two values for equality (handles objects like gradients)
+    valuesEqual(a, b) {
+        if (a === b) return true;
+        if (typeof a !== typeof b) return false;
+        if (a === null || b === null) return a === b;
+        if (typeof a === 'object') {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+        return false;
+    }
+
+    // Render schema for multiple selected shapes
+    renderMultiSelectSchema(schema, targets) {
+        // Add header showing multi-selection
+        const header = document.createElement('div');
+        header.className = 'multi-select-header';
+        header.textContent = `${targets.length} shapes selected`;
+        this.container.appendChild(header);
+
+        // Group and render common properties
+        const groups = {};
+
+        for (const [key, prop] of Object.entries(schema)) {
+            if (prop.hidden) continue;
+
+            const groupName = prop.group || 'other';
+            if (!groups[groupName]) groups[groupName] = [];
+            groups[groupName].push({ key, prop });
+        }
+
+        // Sort and render groups
+        const sortedGroups = Object.entries(groups)
+            .sort((a, b) => {
+                const orderA = PropertyGroups[a[0]]?.order || 50;
+                const orderB = PropertyGroups[b[0]]?.order || 50;
+                return orderA - orderB;
+            });
+
+        for (const [groupName, props] of sortedGroups) {
+            this.renderMultiSelectGroup(groupName, props, targets);
+        }
+    }
+
+    // Render a group for multi-selection
+    renderMultiSelectGroup(groupName, props, targets) {
+        const groupConfig = PropertyGroups[groupName] || { label: groupName };
+        const isCollapsed = this.collapsedSections[groupName] || false;
+
+        const section = document.createElement('section');
+        section.className = 'properties-section';
+        if (isCollapsed) section.classList.add('collapsed');
+        section.dataset.group = groupName;
+
+        // Add header if group has a label
+        if (groupConfig.label) {
+            const header = document.createElement('h3');
+            header.className = 'section-header';
+
+            const chevron = document.createElement('span');
+            chevron.className = 'section-chevron';
+            chevron.textContent = '▼';
+            header.appendChild(chevron);
+
+            const labelText = document.createElement('span');
+            labelText.textContent = groupConfig.label;
+            header.appendChild(labelText);
+
+            header.addEventListener('click', () => {
+                this.toggleSection(groupName);
+                section.classList.toggle('collapsed');
+            });
+
+            section.appendChild(header);
+        }
+
+        const content = document.createElement('div');
+        content.className = 'section-content';
+
+        for (const { key, prop } of props) {
+            // Use first shape's value since all are the same
+            const value = this.getValue(key, prop, targets[0]);
+            const control = this.renderMultiSelectControl(key, prop, value, targets);
+            if (control) {
+                content.appendChild(control);
+            }
+        }
+
+        section.appendChild(content);
+        this.container.appendChild(section);
+    }
+
+    // Render control that applies to multiple shapes
+    renderMultiSelectControl(key, prop, value, targets) {
+        // Use standard control rendering but with multi-target setValue
+        const control = this.renderControl(key, prop, value, targets[0]);
+        if (!control) return null;
+
+        // Re-wire the control to update all targets
+        const controlData = this.controls.get(key);
+        if (controlData) {
+            controlData.targets = targets;
+            controlData.isMultiSelect = true;
+        }
+
+        return control;
     }
 
     renderSchema(schema, target) {
@@ -574,7 +730,14 @@ class PropertiesPanel {
     }
 
     setValue(key, prop, target, value) {
-        // Start micro-transaction for shape property changes
+        // Check if this is a multi-select control
+        const controlData = this.controls.get(key);
+        if (controlData && controlData.isMultiSelect && controlData.targets) {
+            this.setValueMulti(key, prop, controlData.targets, value);
+            return;
+        }
+
+        // Single target: Start micro-transaction for shape property changes
         if (window.historyManager && !historyManager.isInTransaction() && target.id && target.type) {
             historyManager.beginTransaction('property', target.id);
             // Auto-commit after input settles
@@ -590,6 +753,40 @@ class PropertiesPanel {
             target[`set${key.charAt(0).toUpperCase() + key.slice(1)}`](value);
         } else {
             target[key] = value;
+        }
+    }
+
+    // Apply value to multiple shapes
+    setValueMulti(key, prop, targets, value) {
+        const ids = targets.map(t => t.id).filter(Boolean);
+
+        // Start multi-transaction for property changes
+        if (window.historyManager && !historyManager.isInTransaction() && ids.length > 0) {
+            if (ids.length === 1) {
+                historyManager.beginTransaction('property', ids[0]);
+            } else {
+                historyManager.beginMultiTransaction('property', ids);
+            }
+            // Auto-commit after input settles
+            clearTimeout(this._propertyTransactionTimeout);
+            this._propertyTransactionTimeout = setTimeout(() => {
+                if (ids.length === 1) {
+                    historyManager.endTransaction();
+                } else {
+                    historyManager.endMultiTransaction();
+                }
+            }, 300);
+        }
+
+        // Apply to all targets
+        for (const target of targets) {
+            if (prop.set) {
+                prop.set(target, value);
+            } else if (typeof target[`set${key.charAt(0).toUpperCase() + key.slice(1)}`] === 'function') {
+                target[`set${key.charAt(0).toUpperCase() + key.slice(1)}`](value);
+            } else {
+                target[key] = value;
+            }
         }
     }
 

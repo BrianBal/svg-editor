@@ -86,12 +86,42 @@ Components communicate via events rather than direct references. Key events:
 - `shape:created`, `shape:deleted`, `shape:selected`, `shape:deselected`, `shape:updated`
 - `tool:changed`, `shapes:reordered`, `canvas:loaded`, `document:background`
 - `history:changed` - emitted when undo/redo stacks change
+- `selection:changed` - emitted when selection changes (array of selected shapes)
+
+### Multi-Select System
+
+The app supports selecting and manipulating multiple shapes simultaneously.
+
+#### Selection State
+
+- `appState.selectedShapeIds` - Array of selected shape IDs
+- `appState.selectedShapeId` - Backwards-compatible getter returning first selected ID
+- Methods: `selectShape(id)`, `addToSelection(id)`, `removeFromSelection(id)`, `toggleSelection(id)`, `selectRange(fromId, toId)`, `getSelectedShapes()`, `isSelected(id)`
+
+#### Selection Behavior
+
+- **Canvas**: Click to select, Shift+click to toggle in/out of selection
+- **Layers Panel**: Click to select, Shift+click for range selection, Ctrl/Cmd+click to toggle
+- **Properties Panel**: Shows only properties with identical values across all selected shapes
+
+#### Multi-Shape Operations
+
+- **Move**: Drag any selected shape to move all together (maintains relative positions)
+- **Resize**: Drag handles to resize proportionally based on combined bounding box
+- **Rotate**: Drag rotation handle to rotate all shapes around combined center
+- **Delete**: Delete/Backspace removes all selected shapes
+- **Arrow keys**: Move all selected shapes
+
+#### History Integration
+
+Multi-shape operations use `historyManager.beginMultiTransaction(type, targetIds)` and `endMultiTransaction()` to batch changes into a single undo/redo action.
 
 ### Shape Hierarchy
 
 Base class `Shape` (`js/Shape.js`) defines the interface for all shapes:
 - Each shape type extends `Shape` and implements: `createSVGElement()`, `updateElement()`, `getBounds()`, `clone()`
-- Shape types: `Rectangle`, `Ellipse`, `Line`, `Polyline`, `Star`, `TextShape`
+- Shape types: `Rectangle`, `Ellipse`, `Line`, `Polyline`, `Path`, `Star`, `TextShape`
+- `PointBasedShape` (`js/PointBasedShape.js`) is a shared base class for `Polyline` and `Path`
 - Shapes are stored in `appState.shapes[]` and rendered to `#shapes-layer` SVG group
 
 #### Shape Properties
@@ -111,14 +141,24 @@ Shape-specific properties:
 - `Star`: `points`, `innerRadius`, `outerRadius`
 - `TextShape`: `text`, `fontSize`, `fontFamily`
 - `Line`: `x1`, `y1`, `x2`, `y2`
-- `Polyline`: `points[]`
+- `Polyline`: `points[]` (array of `{x, y}`)
+- `Path`: `points[]` (array of `{x, y, handleIn, handleOut}`), `closed` (boolean)
 
 ### Tool System
 
 Tools handle canvas interactions and follow a common interface:
 - Methods: `onMouseDown(e, pos)`, `onMouseMove(e, pos)`, `onMouseUp(e, pos)`, `onDoubleClick(e, pos)`
 - `SVGCanvas` delegates mouse events to the active tool
-- Tools: `SelectTool`, `RectangleTool`, `EllipseTool`, `LineTool`, `PolylineTool`, `StarTool`, `TextTool`
+- Tools: `SelectTool`, `RectangleTool`, `EllipseTool`, `LineTool`, `PolylineTool`, `PenTool`, `StarTool`, `TextTool`
+
+#### PenTool (Bezier Paths)
+
+The `PenTool` creates bezier curve paths with control handles:
+- **Click** to add corner points (no handles)
+- **Click + drag** to add curve points with symmetric handles
+- **Click near first point** (within 15px) to close the path
+- **Double-click** or **Escape** to finish an open path
+- Keyboard shortcut: `B`
 
 ### DOM Structure
 

@@ -9,6 +9,7 @@ class App {
         const tools = {
             select: new SelectTool(this.canvas),
             polyline: new PolylineTool(this.canvas),
+            pen: new PenTool(this.canvas),
             rectangle: new RectangleTool(this.canvas),
             ellipse: new EllipseTool(this.canvas),
             line: new LineTool(this.canvas),
@@ -185,9 +186,12 @@ class App {
             switch (e.key) {
                 case 'Delete':
                 case 'Backspace':
-                    const shape = appState.getSelectedShape();
-                    if (shape) {
-                        this.canvas.removeShape(shape);
+                    const selectedShapes = appState.getSelectedShapes();
+                    if (selectedShapes.length > 0) {
+                        // Delete all selected shapes
+                        selectedShapes.forEach(shape => {
+                            this.canvas.removeShape(shape);
+                        });
                         appState.deselectAll();
                     }
                     break;
@@ -261,6 +265,13 @@ class App {
                     }
                     break;
 
+                case 'b':
+                case 'B':
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('pen');
+                    }
+                    break;
+
                 case 'ArrowUp':
                     this.moveSelectedShape(0, -moveAmount);
                     e.preventDefault();
@@ -306,18 +317,36 @@ class App {
         });
     }
 
-    moveSelectedShape(dx, dy) {
-        const shape = appState.getSelectedShape();
-        if (!shape) return;
+    moveSelectedShapes(dx, dy) {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length === 0) return;
+
+        const ids = shapes.map(s => s.id);
 
         if (window.historyManager) {
-            historyManager.beginTransaction('move', shape.id);
+            if (ids.length === 1) {
+                historyManager.beginTransaction('move', ids[0]);
+            } else {
+                historyManager.beginMultiTransaction('move', ids);
+            }
         }
-        shape.move(dx, dy);
+
+        shapes.forEach(shape => shape.move(dx, dy));
+
         if (window.historyManager) {
-            historyManager.endTransaction();
+            if (ids.length === 1) {
+                historyManager.endTransaction();
+            } else {
+                historyManager.endMultiTransaction();
+            }
         }
+
         this.canvas.selection.updateHandles();
+    }
+
+    // Backwards compatibility alias
+    moveSelectedShape(dx, dy) {
+        this.moveSelectedShapes(dx, dy);
     }
 }
 
