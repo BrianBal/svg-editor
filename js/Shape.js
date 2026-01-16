@@ -16,6 +16,7 @@ class Shape {
         this.type = type;
         this.stroke = '#000000';
         this.fill = 'none';
+        this.fillGradient = null; // Gradient instance when fill is a gradient
         this.strokeWidth = 2;
         this.opacity = 100;
         this.strokeDash = 'solid';
@@ -45,12 +46,40 @@ class Shape {
         eventBus.emit('shape:updated', this);
     }
 
-    setFill(color) {
-        this.fill = color;
+    setFill(value) {
+        if (value instanceof Gradient) {
+            this.fillGradient = value;
+            this.fill = `url(#${value.id})`;
+            // Add gradient to defs
+            if (typeof gradientManager !== 'undefined') {
+                gradientManager.addOrUpdateGradient(value);
+            }
+        } else {
+            // Remove old gradient if switching to solid color
+            if (this.fillGradient && typeof gradientManager !== 'undefined') {
+                gradientManager.removeGradient(this.fillGradient.id);
+            }
+            this.fillGradient = null;
+            this.fill = value;
+        }
         if (this.element) {
-            this.element.setAttribute('fill', color);
+            this.element.setAttribute('fill', this.fill);
         }
         eventBus.emit('shape:updated', this);
+    }
+
+    getFillType() {
+        if (this.fillGradient) {
+            return this.fillGradient.type; // 'linear' or 'radial'
+        }
+        return 'solid';
+    }
+
+    getFillColor() {
+        if (this.fillGradient) {
+            return this.fillGradient.stops[0].color;
+        }
+        return this.fill;
     }
 
     setStrokeWidth(width) {
@@ -108,7 +137,6 @@ class Shape {
 
     applyAttributes(element) {
         element.setAttribute('stroke', this.stroke);
-        element.setAttribute('fill', this.fill);
         element.setAttribute('stroke-width', this.strokeWidth);
         element.setAttribute('stroke-linecap', this.strokeLinecap);
         element.setAttribute('stroke-linejoin', this.strokeLinejoin);
@@ -117,6 +145,12 @@ class Shape {
         }
         this.applyStrokeDash(element);
         element.dataset.shapeId = this.id;
+
+        // Handle fill with gradient support
+        if (this.fillGradient && typeof gradientManager !== 'undefined') {
+            gradientManager.addOrUpdateGradient(this.fillGradient);
+        }
+        element.setAttribute('fill', this.fill);
     }
 
     clone() {
@@ -125,12 +159,25 @@ class Shape {
 
     copyAttributesTo(shape) {
         shape.stroke = this.stroke;
-        shape.fill = this.fill;
         shape.strokeWidth = this.strokeWidth;
         shape.opacity = this.opacity;
         shape.strokeDash = this.strokeDash;
         shape.strokeLinecap = this.strokeLinecap;
         shape.strokeLinejoin = this.strokeLinejoin;
         shape.visible = this.visible;
+
+        // Handle fill with gradient support
+        if (this.fillGradient) {
+            const gradientCopy = this.fillGradient.clone();
+            shape.fillGradient = gradientCopy;
+            shape.fill = `url(#${gradientCopy.id})`;
+            // Add cloned gradient to defs
+            if (typeof gradientManager !== 'undefined') {
+                gradientManager.addOrUpdateGradient(gradientCopy);
+            }
+        } else {
+            shape.fill = this.fill;
+            shape.fillGradient = null;
+        }
     }
 }

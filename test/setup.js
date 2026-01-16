@@ -10,6 +10,8 @@ const jsDir = join(__dirname, '..', 'js');
 const files = [
     { file: 'EventBus.js', className: 'EventBus' },
     { file: 'State.js', className: 'State' },
+    { file: 'Gradient.js', className: 'Gradient' },
+    { file: 'GradientManager.js', className: 'GradientManager' },
     { file: 'Shape.js', className: 'Shape' },
     { file: 'Rectangle.js', className: 'Rectangle' },
     { file: 'Ellipse.js', className: 'Ellipse' },
@@ -51,6 +53,7 @@ beforeEach(() => {
 
     // Reset shape ID counter for predictable IDs
     globalThis.Shape.resetIdCounter();
+    globalThis.Gradient.resetIdCounter();
 
     // Create minimal DOM structure for tests that need it
     document.body.innerHTML = `

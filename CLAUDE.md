@@ -98,6 +98,7 @@ Base class `Shape` (`js/Shape.js`) defines the interface for all shapes:
 
 All shapes inherit these base properties from `Shape`:
 - `stroke`, `fill`, `strokeWidth` - Basic appearance
+- `fillGradient` - Gradient instance when fill is a gradient (see Gradient System below)
 - `opacity` - Transparency (0-100%)
 - `strokeDash` - Line style: `'solid'`, `'dashed'`, `'dotted'`
 - `strokeLinecap` - Line endings: `'butt'`, `'round'`, `'square'`
@@ -132,6 +133,46 @@ Tools handle canvas interactions and follow a common interface:
 - `PropertiesPanel` - Schema-driven property editor (see below)
 - `SVGLoader` - File import/export functionality
 - `HistoryManager` - Undo/redo system exposed as `window.historyManager`
+- `Gradient` - Gradient data model for linear/radial gradients
+- `GradientManager` - Manages SVG `<defs>` element and gradient elements
+
+### Gradient System
+
+The gradient system allows shapes to have linear or radial gradient fills instead of solid colors.
+
+#### How It Works
+
+1. `Gradient` class (`js/Gradient.js`) stores gradient data:
+   - `type`: `'linear'` or `'radial'`
+   - `stops[]`: Array of `{offset, color}` objects (offset 0-100)
+   - `angle`: Rotation for linear gradients (0-360 degrees)
+   - `cx`, `cy`, `r`: Center and radius for radial gradients
+
+2. `GradientManager` (`js/GradientManager.js`) manages SVG `<defs>`:
+   - Creates/updates `<linearGradient>` or `<radialGradient>` elements
+   - Each shape gets its own gradient instance (not shared)
+   - Exposed as `window.gradientManager`
+
+3. `Shape.setFill(value)` handles both colors and gradients:
+   - Pass a `Gradient` instance to set gradient fill
+   - Pass a color string to set solid fill
+   - Gradient is stored in `shape.fillGradient`
+   - Fill attribute becomes `url(#gradient-id)`
+
+#### UI in PropertiesPanel
+
+The fill property uses a custom `'fill'` type that renders:
+- Mode toggle: None | Solid | Linear | Radial
+- For gradients: Square preview with draggable stop markers
+- Double-click marker to edit color, right-click to remove
+- Angle input (linear) or size slider (radial)
+- Click empty area to add new stops
+
+#### Serialization
+
+Gradients are fully serialized for undo/redo and file persistence:
+- `HistoryManager` serializes `fillGradient` in shape state
+- `SVGLoader` imports gradients from `<defs>` and exports them on save
 
 ### Schema-Driven Properties Panel
 
@@ -150,7 +191,7 @@ static get properties() {
     return {
         ...Shape.properties,  // Inherit base properties
         cornerRadius: {
-            type: 'number',      // Control type: number, color, select, range, checkbox, button, textarea
+            type: 'number',      // Control type: number, color, select, range, checkbox, button, textarea, fill
             label: 'Corner Radius',
             group: 'rectangle',  // Section grouping
             suffix: 'px',        // Unit display
@@ -161,6 +202,8 @@ static get properties() {
     };
 }
 ```
+
+The `fill` type is special - it renders a mode toggle (None/Solid/Linear/Radial) and appropriate controls for each mode.
 
 #### Adding New Properties
 

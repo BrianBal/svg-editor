@@ -8,30 +8,16 @@ This document lists SVG capabilities not yet supported, ordered by importance/fr
 
 - **Shapes**: Rectangle, Ellipse, Line, Polyline, Star, Text
 - **Attributes**: Stroke color, fill color, stroke width, opacity, stroke dash, linecap, linejoin
+- **Gradient Fills**: Linear and radial gradients with multi-stop support, angle control, interactive stop editing
 - **Interactions**: Select, move, resize, point editing (polyline/line)
-- **File ops**: Save/load (IndexedDB), SVG import/export
+- **File ops**: Save/load (IndexedDB), SVG import/export (including gradients)
 - **Editing**: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, Cmd+Z / Cmd+Shift+Z on Mac)
 
 ---
 
 ## Missing Features
 
-### 1. Gradient Fills
-**Priority: High**
-
-Solid colors are limiting. Gradients are fundamental to modern design.
-
-**Suggestion**: Extend color picker to support gradient mode.
-- Add gradient type toggle: Solid | Linear | Radial
-- For gradients, show:
-  - Start/end colors (linear) or center/outer colors (radial)
-  - Angle control (linear) or focal point (radial)
-- Store as `<defs>` with unique IDs, reference via `url(#gradient-id)`
-- Each shape with gradient gets its own `<linearGradient>` or `<radialGradient>` in defs
-
----
-
-### 2. Rotation/Transform
+### 1. Rotation/Transform
 **Priority: High**
 
 Cannot rotate shapes at all currently. Major limitation.
@@ -506,7 +492,7 @@ Control how sharp corners are rendered when using miter joins.
 4. ~~Opacity~~ ✓
 
 **Phase 2 - Visual Features**
-5. Gradients
+5. ~~Gradients~~ ✓
 6. Rotation
 7. Rounded rectangles (UI only - property exists)
 8. Stroke dash patterns (UI only - property exists)

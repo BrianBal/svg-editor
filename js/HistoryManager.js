@@ -267,6 +267,7 @@ class HistoryManager {
             id: shape.id,
             stroke: shape.stroke,
             fill: shape.fill,
+            fillGradient: shape.fillGradient ? shape.fillGradient.serialize() : null,
             strokeWidth: shape.strokeWidth,
             opacity: shape.opacity,
             strokeDash: shape.strokeDash,
@@ -346,13 +347,22 @@ class HistoryManager {
 
         if (shape) {
             shape.stroke = state.stroke;
-            shape.fill = state.fill;
             shape.strokeWidth = state.strokeWidth;
             shape.opacity = state.opacity;
             shape.strokeDash = state.strokeDash;
             shape.strokeLinecap = state.strokeLinecap;
             shape.strokeLinejoin = state.strokeLinejoin;
             shape.visible = state.visible;
+
+            // Restore fill with gradient support
+            if (state.fillGradient) {
+                const gradient = Gradient.deserialize(state.fillGradient);
+                shape.fillGradient = gradient;
+                shape.fill = `url(#${gradient.id})`;
+            } else {
+                shape.fill = state.fill;
+                shape.fillGradient = null;
+            }
         }
 
         return shape;
@@ -404,13 +414,20 @@ class HistoryManager {
 
         // Apply common properties
         shape.stroke = state.stroke;
-        shape.fill = state.fill;
         shape.strokeWidth = state.strokeWidth;
         shape.opacity = state.opacity;
         shape.strokeDash = state.strokeDash;
         shape.strokeLinecap = state.strokeLinecap;
         shape.strokeLinejoin = state.strokeLinejoin;
         shape.visible = state.visible;
+
+        // Handle fill with gradient support
+        if (state.fillGradient) {
+            const gradient = Gradient.deserialize(state.fillGradient);
+            shape.setFill(gradient);
+        } else {
+            shape.setFill(state.fill);
+        }
 
         shape.updateElement();
         eventBus.emit('shape:updated', shape);

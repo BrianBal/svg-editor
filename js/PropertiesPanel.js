@@ -164,12 +164,21 @@ const BaseShapeProperties = {
 
     // Appearance group
     fill: {
-        type: 'color',
+        type: 'fill',
         label: 'Fill',
         group: 'appearance',
-        allowNone: true,
-        get: (shape) => shape.fill,
-        set: (shape, value) => shape.setFill(value)
+        get: (shape) => ({
+            type: shape.getFillType(),
+            color: shape.fillGradient ? shape.fillGradient.stops[0].color : shape.fill,
+            gradient: shape.fillGradient
+        }),
+        set: (shape, value) => {
+            if (value instanceof Gradient) {
+                shape.setFill(value);
+            } else {
+                shape.setFill(value);
+            }
+        }
     },
     stroke: {
         type: 'color',
@@ -569,6 +578,8 @@ class PropertiesPanel {
                 return this.renderNumberInput(key, prop, value, target);
             case 'color':
                 return this.renderColorPicker(key, prop, value, target);
+            case 'fill':
+                return this.renderFillPicker(key, prop, value, target);
             case 'button':
                 return this.renderButton(key, prop, target);
             case 'textarea':
@@ -688,6 +699,436 @@ class PropertiesPanel {
         this.controls.set(key, { element: input, prop, target, isInput: true, noneBtn });
 
         return row;
+    }
+
+    renderFillPicker(key, prop, value, target) {
+        const container = document.createElement('div');
+        container.className = 'fill-picker';
+
+        // Fill label
+        const label = document.createElement('span');
+        label.className = 'fill-label';
+        label.textContent = 'Fill';
+        container.appendChild(label);
+
+        // Mode toggle: Solid | Linear | Radial | None
+        const modeToggle = document.createElement('div');
+        modeToggle.className = 'fill-mode-toggle';
+
+        const modes = [
+            { id: 'none', label: 'None' },
+            { id: 'solid', label: 'Solid' },
+            { id: 'linear', label: 'Linear' },
+            { id: 'radial', label: 'Radial' }
+        ];
+
+        const currentMode = value.color === 'none' ? 'none' : value.type;
+
+        modes.forEach(mode => {
+            const btn = document.createElement('button');
+            btn.className = 'fill-mode-btn' + (mode.id === currentMode ? ' active' : '');
+            btn.textContent = mode.label;
+            btn.dataset.mode = mode.id;
+            btn.addEventListener('click', () => this.onFillModeChange(key, prop, target, mode.id, value));
+            modeToggle.appendChild(btn);
+        });
+
+        container.appendChild(modeToggle);
+
+        // Content area based on current mode
+        const contentArea = document.createElement('div');
+        contentArea.className = 'fill-picker-content';
+
+        if (currentMode === 'none') {
+            // No additional content needed
+        } else if (currentMode === 'solid') {
+            contentArea.appendChild(this.createSolidFillUI(key, prop, value.color, target));
+        } else {
+            // Gradient mode
+            contentArea.appendChild(this.createGradientUI(key, prop, value.gradient, target, currentMode));
+        }
+
+        container.appendChild(contentArea);
+
+        // Store reference for updates
+        this.controls.set(key, {
+            element: container,
+            prop,
+            target,
+            isInput: false,
+            fillData: value
+        });
+
+        return container;
+    }
+
+    onFillModeChange(key, prop, target, newMode, currentValue) {
+        if (newMode === 'none') {
+            prop.set(target, 'none');
+        } else if (newMode === 'solid') {
+            // Switch to solid - use first gradient stop color or default
+            const color = currentValue.gradient
+                ? currentValue.gradient.stops[0].color
+                : (currentValue.color === 'none' ? '#cccccc' : currentValue.color);
+            prop.set(target, color);
+        } else {
+            // Switch to gradient
+            let gradient;
+            if (currentValue.gradient && currentValue.gradient.type === newMode) {
+                // Already has a gradient of the same type
+                gradient = currentValue.gradient;
+            } else if (currentValue.gradient) {
+                // Convert existing gradient to new type
+                gradient = currentValue.gradient.clone();
+                gradient.type = newMode;
+            } else {
+                // Create new gradient
+                gradient = new Gradient(newMode);
+                const startColor = currentValue.color === 'none' ? '#cccccc' : currentValue.color;
+                gradient.stops[0].color = startColor;
+            }
+            prop.set(target, gradient);
+        }
+        this.render();
+    }
+
+    createSolidFillUI(key, prop, color, target) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'solid-fill-ui';
+
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = color === 'none' ? '#cccccc' : color;
+        input.className = 'fill-color-input';
+
+        input.addEventListener('input', (e) => {
+            prop.set(target, e.target.value);
+        });
+
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+
+    createGradientUI(key, prop, gradient, target, type) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'gradient-ui';
+
+        // Ensure we have a gradient
+        if (!gradient) {
+            gradient = new Gradient(type);
+            prop.set(target, gradient);
+        }
+
+        // Square gradient preview with stop markers
+        const stopsContainer = document.createElement('div');
+        stopsContainer.className = 'gradient-stops-container';
+
+        const track = document.createElement('div');
+        track.className = 'gradient-stops-track';
+        track.style.background = gradient.toCSS();
+
+        // Helper to position markers based on angle (linear) or radius (radial)
+        const positionMarker = (marker, offset) => {
+            if (type === 'linear') {
+                // Convert angle to direction and position along that line
+                const radians = ((gradient.angle - 90) * Math.PI) / 180;
+                const t = offset / 100 - 0.5; // -0.5 to 0.5
+                const x = 50 + t * Math.cos(radians) * 90;
+                const y = 50 + t * Math.sin(radians) * 90;
+                marker.style.left = `${x}%`;
+                marker.style.top = `${y}%`;
+            } else {
+                // Radial: position from center outward
+                const distance = (offset / 100) * 45; // 45% max radius
+                marker.style.left = `${50 + distance}%`;
+                marker.style.top = '50%';
+            }
+        };
+
+        // Create markers for each stop
+        const markers = [];
+        gradient.stops.forEach((stop, index) => {
+            const marker = this.createStopMarker(stop, index, gradient, prop, target, track, positionMarker);
+            positionMarker(marker, stop.offset);
+            markers.push(marker);
+            track.appendChild(marker);
+        });
+
+        // Draw direction line for linear gradients
+        if (type === 'linear') {
+            const directionLine = document.createElement('div');
+            directionLine.className = 'gradient-direction-line';
+            const radians = ((gradient.angle - 90) * Math.PI) / 180;
+            directionLine.style.transform = `rotate(${gradient.angle}deg)`;
+            track.appendChild(directionLine);
+        }
+
+        // Click on track to add new stop
+        track.addEventListener('click', (e) => {
+            if (e.target === track || e.target.classList.contains('gradient-direction-line')) {
+                const rect = track.getBoundingClientRect();
+                const clickX = (e.clientX - rect.left) / rect.width;
+                const clickY = (e.clientY - rect.top) / rect.height;
+
+                let offset;
+                if (type === 'linear') {
+                    // Calculate offset based on projection onto angle line
+                    const radians = ((gradient.angle - 90) * Math.PI) / 180;
+                    const dx = clickX - 0.5;
+                    const dy = clickY - 0.5;
+                    const projection = dx * Math.cos(radians) + dy * Math.sin(radians);
+                    offset = Math.round((projection / 0.9 + 0.5) * 100);
+                } else {
+                    // Radial: distance from center
+                    const dx = clickX - 0.5;
+                    const dy = clickY - 0.5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    offset = Math.round((distance / 0.45) * 100);
+                }
+
+                offset = Math.max(0, Math.min(100, offset));
+                const color = this.interpolateGradientColor(gradient, offset);
+                gradient.addStop(offset, color);
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+                prop.set(target, gradient);
+                this.render();
+            }
+        });
+
+        stopsContainer.appendChild(track);
+        wrapper.appendChild(stopsContainer);
+
+        // Controls row
+        const stopControls = document.createElement('div');
+        stopControls.className = 'gradient-stop-controls';
+
+        // Type-specific controls
+        if (type === 'linear') {
+            const angleRow = document.createElement('div');
+            angleRow.className = 'gradient-angle-row';
+
+            const angleLabel = document.createElement('span');
+            angleLabel.textContent = 'Angle';
+            angleLabel.className = 'gradient-angle-label';
+
+            const angleInput = document.createElement('input');
+            angleInput.type = 'number';
+            angleInput.min = 0;
+            angleInput.max = 360;
+            angleInput.value = gradient.angle;
+            angleInput.className = 'gradient-angle-input';
+
+            angleInput.addEventListener('input', (e) => {
+                gradient.angle = parseInt(e.target.value) || 0;
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+                prop.set(target, gradient);
+                track.style.background = gradient.toCSS();
+
+                // Update direction line rotation
+                const dirLine = track.querySelector('.gradient-direction-line');
+                if (dirLine) {
+                    dirLine.style.transform = `rotate(${gradient.angle}deg)`;
+                }
+
+                // Reposition all markers
+                markers.forEach((marker, i) => {
+                    positionMarker(marker, gradient.stops[i].offset);
+                });
+            });
+
+            const angleSuffix = document.createElement('span');
+            angleSuffix.textContent = '°';
+            angleSuffix.className = 'gradient-angle-suffix';
+
+            angleRow.appendChild(angleLabel);
+            angleRow.appendChild(angleInput);
+            angleRow.appendChild(angleSuffix);
+            stopControls.appendChild(angleRow);
+        } else {
+            // Radial gradient controls
+            const radiusRow = document.createElement('div');
+            radiusRow.className = 'gradient-radius-row';
+
+            const radiusLabel = document.createElement('span');
+            radiusLabel.textContent = 'Size';
+            radiusLabel.className = 'gradient-radius-label';
+
+            const radiusInput = document.createElement('input');
+            radiusInput.type = 'range';
+            radiusInput.min = 10;
+            radiusInput.max = 100;
+            radiusInput.value = gradient.r;
+            radiusInput.className = 'gradient-radius-input';
+
+            radiusInput.addEventListener('input', (e) => {
+                gradient.r = parseInt(e.target.value);
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+                prop.set(target, gradient);
+                track.style.background = gradient.toCSS();
+            });
+
+            radiusRow.appendChild(radiusLabel);
+            radiusRow.appendChild(radiusInput);
+            stopControls.appendChild(radiusRow);
+        }
+
+        wrapper.appendChild(stopControls);
+
+        return wrapper;
+    }
+
+    createStopMarker(stop, index, gradient, prop, target, track, positionMarker) {
+        const marker = document.createElement('div');
+        marker.className = 'gradient-stop-marker';
+        marker.style.backgroundColor = stop.color;
+        marker.dataset.index = index;
+
+        // Hidden color input for double-click editing
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = stop.color;
+        colorInput.className = 'gradient-marker-color-input';
+        marker.appendChild(colorInput);
+
+        colorInput.addEventListener('input', (e) => {
+            stop.color = e.target.value;
+            marker.style.backgroundColor = stop.color;
+            if (typeof gradientManager !== 'undefined') {
+                gradientManager.addOrUpdateGradient(gradient);
+            }
+            track.style.background = gradient.toCSS();
+            eventBus.emit('shape:updated', target);
+        });
+
+        colorInput.addEventListener('change', (e) => {
+            prop.set(target, gradient);
+        });
+
+        // Dragging support
+        let isDragging = false;
+
+        marker.addEventListener('mousedown', (e) => {
+            if (e.target === colorInput) return;
+            e.stopPropagation();
+            isDragging = true;
+            marker.classList.add('dragging');
+
+            const gradientType = gradient.type;
+
+            const onMouseMove = (moveEvent) => {
+                if (!isDragging) return;
+                const rect = track.getBoundingClientRect();
+                const moveX = (moveEvent.clientX - rect.left) / rect.width;
+                const moveY = (moveEvent.clientY - rect.top) / rect.height;
+
+                let offset;
+                if (gradientType === 'linear') {
+                    // Project mouse position onto angle line
+                    const radians = ((gradient.angle - 90) * Math.PI) / 180;
+                    const dx = moveX - 0.5;
+                    const dy = moveY - 0.5;
+                    const projection = dx * Math.cos(radians) + dy * Math.sin(radians);
+                    offset = Math.round((projection / 0.9 + 0.5) * 100);
+                } else {
+                    // Radial: distance from center
+                    const dx = moveX - 0.5;
+                    const dy = moveY - 0.5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    offset = Math.round((distance / 0.45) * 100);
+                }
+
+                offset = Math.max(0, Math.min(100, offset));
+                gradient.stops[index].offset = offset;
+                positionMarker(marker, offset);
+
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+                track.style.background = gradient.toCSS();
+                eventBus.emit('shape:updated', target);
+            };
+
+            const onMouseUp = () => {
+                isDragging = false;
+                marker.classList.remove('dragging');
+                // Re-sort stops
+                gradient.stops.sort((a, b) => a.offset - b.offset);
+                prop.set(target, gradient);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        // Double-click to edit color
+        marker.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            colorInput.click();
+        });
+
+        // Right-click to remove (if more than 2 stops)
+        marker.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (gradient.stops.length > 2) {
+                gradient.removeStop(index);
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+                prop.set(target, gradient);
+                this.render();
+            }
+        });
+
+        return marker;
+    }
+
+    interpolateGradientColor(gradient, offset) {
+        const stops = gradient.stops;
+        if (stops.length === 0) return '#000000';
+        if (stops.length === 1) return stops[0].color;
+
+        // Find surrounding stops
+        let before = stops[0];
+        let after = stops[stops.length - 1];
+
+        for (let i = 0; i < stops.length - 1; i++) {
+            if (stops[i].offset <= offset && stops[i + 1].offset >= offset) {
+                before = stops[i];
+                after = stops[i + 1];
+                break;
+            }
+        }
+
+        if (before.offset === after.offset) return before.color;
+
+        // Linear interpolation
+        const t = (offset - before.offset) / (after.offset - before.offset);
+        return this.lerpColor(before.color, after.color, t);
+    }
+
+    lerpColor(color1, color2, t) {
+        const hex = (c) => parseInt(c.slice(1), 16);
+        const r = (h) => (h >> 16) & 255;
+        const g = (h) => (h >> 8) & 255;
+        const b = (h) => h & 255;
+
+        const h1 = hex(color1);
+        const h2 = hex(color2);
+
+        const rr = Math.round(r(h1) + t * (r(h2) - r(h1)));
+        const gg = Math.round(g(h1) + t * (g(h2) - g(h1)));
+        const bb = Math.round(b(h1) + t * (b(h2) - b(h1)));
+
+        return `#${((1 << 24) + (rr << 16) + (gg << 8) + bb).toString(16).slice(1)}`;
     }
 
     renderButton(key, prop, target) {

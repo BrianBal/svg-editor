@@ -1,6 +1,7 @@
 class SVGLoader {
     constructor(canvas) {
         this.canvas = canvas;
+        this.importedGradients = new Map();
     }
 
     loadFile(file) {
@@ -24,15 +25,34 @@ class SVGLoader {
         }
 
         this.canvas.clear();
+        this.importedGradients.clear();
 
         const width = svg.getAttribute('width') || 800;
         const height = svg.getAttribute('height') || 600;
         const viewBox = svg.getAttribute('viewBox') || `0 0 ${width} ${height}`;
 
         this.updateCanvasSize(width, height, viewBox);
+        this.parseGradients(svg);
         this.parseShapes(svg);
 
         eventBus.emit('canvas:loaded');
+    }
+
+    parseGradients(svgElement) {
+        const defs = svgElement.querySelector('defs');
+        if (!defs) return;
+
+        // Parse linear gradients
+        defs.querySelectorAll('linearGradient').forEach(el => {
+            const gradient = Gradient.fromSVGElement(el);
+            this.importedGradients.set(el.getAttribute('id'), gradient);
+        });
+
+        // Parse radial gradients
+        defs.querySelectorAll('radialGradient').forEach(el => {
+            const gradient = Gradient.fromSVGElement(el);
+            this.importedGradients.set(el.getAttribute('id'), gradient);
+        });
     }
 
     updateCanvasSize(width, height, viewBox) {
@@ -115,8 +135,21 @@ class SVGLoader {
 
         // Explicitly handle missing attributes - set to 'none' if not present
         shape.stroke = stroke || 'none';
-        shape.fill = fill || 'none';
         if (strokeWidth) shape.strokeWidth = parseFloat(strokeWidth);
+
+        // Handle fill - check for gradient reference
+        if (fill && fill.startsWith('url(#')) {
+            const match = fill.match(/url\(#([^)]+)\)/);
+            if (match && this.importedGradients.has(match[1])) {
+                const gradient = this.importedGradients.get(match[1]).clone();
+                shape.fillGradient = gradient;
+                shape.fill = `url(#${gradient.id})`;
+            } else {
+                shape.fill = fill;
+            }
+        } else {
+            shape.fill = fill || 'none';
+        }
     }
 
     exportSVG() {
@@ -131,6 +164,9 @@ class SVGLoader {
             el.removeAttribute('data-shape-id');
         });
 
+        // Clean up unused gradients from defs
+        this.cleanupUnusedGradients(svg);
+
         const serializer = new XMLSerializer();
         let svgString = serializer.serializeToString(svg);
 
@@ -143,5 +179,35 @@ class SVGLoader {
         a.download = 'drawing.svg';
         a.click();
         URL.revokeObjectURL(url);
+    }
+
+    cleanupUnusedGradients(svg) {
+        const defs = svg.querySelector('defs');
+        if (!defs) return;
+
+        // Find all gradient IDs that are actually used
+        const usedIds = new Set();
+        svg.querySelectorAll('[fill^="url(#"]').forEach(el => {
+            const fill = el.getAttribute('fill');
+            const match = fill.match(/url\(#([^)]+)\)/);
+            if (match) usedIds.add(match[1]);
+        });
+        svg.querySelectorAll('[stroke^="url(#"]').forEach(el => {
+            const stroke = el.getAttribute('stroke');
+            const match = stroke.match(/url\(#([^)]+)\)/);
+            if (match) usedIds.add(match[1]);
+        });
+
+        // Remove unused gradients
+        defs.querySelectorAll('linearGradient, radialGradient').forEach(grad => {
+            if (!usedIds.has(grad.id)) {
+                grad.remove();
+            }
+        });
+
+        // Remove empty defs element
+        if (defs.children.length === 0) {
+            defs.remove();
+        }
     }
 }

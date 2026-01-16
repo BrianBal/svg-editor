@@ -13,7 +13,14 @@ class SVGCanvas {
         this.tools = {};
 
         this.createBackgroundRect();
+        this.initGradientManager();
         this.setupEventListeners();
+    }
+
+    initGradientManager() {
+        if (typeof gradientManager !== 'undefined') {
+            gradientManager.init(this.svg);
+        }
     }
 
     createBackgroundRect() {
@@ -240,6 +247,10 @@ class SVGCanvas {
     }
 
     removeShape(shape) {
+        // Clean up gradient if shape has one
+        if (shape.fillGradient && typeof gradientManager !== 'undefined') {
+            gradientManager.removeGradient(shape.fillGradient.id);
+        }
         if (shape.element) {
             shape.element.remove();
         }
@@ -254,6 +265,10 @@ class SVGCanvas {
         });
         appState.shapes = [];
         appState.deselectAll();
+        // Clear all gradients from defs
+        if (typeof gradientManager !== 'undefined') {
+            gradientManager.clear();
+        }
     }
 
     updateSize(width, height, viewBox) {
