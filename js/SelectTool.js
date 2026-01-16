@@ -14,6 +14,10 @@ class SelectTool {
             const shapeId = target.dataset.shapeId;
             appState.selectShape(shapeId);
             this.isDragging = true;
+
+            if (window.historyManager) {
+                historyManager.beginTransaction('move', shapeId);
+            }
             this.dragStart = pos;
 
             const shape = appState.getShapeById(shapeId);
@@ -80,6 +84,9 @@ class SelectTool {
     }
 
     onMouseUp(e, pos) {
+        if (window.historyManager) {
+            historyManager.endTransaction();
+        }
         this.isDragging = false;
         this.originalPoints = null;
         this.shapeBoundsStart = null;

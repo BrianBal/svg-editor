@@ -85,6 +85,7 @@ The app uses a simple pub/sub pattern for component communication:
 Components communicate via events rather than direct references. Key events:
 - `shape:created`, `shape:deleted`, `shape:selected`, `shape:deselected`, `shape:updated`
 - `tool:changed`, `shapes:reordered`, `canvas:loaded`, `document:background`
+- `history:changed` - emitted when undo/redo stacks change
 
 ### Shape Hierarchy
 
@@ -130,6 +131,7 @@ Tools handle canvas interactions and follow a common interface:
 - `LayersPanel` - UI for layer ordering and visibility
 - `PropertiesPanel` - Schema-driven property editor (see below)
 - `SVGLoader` - File import/export functionality
+- `HistoryManager` - Undo/redo system exposed as `window.historyManager`
 
 ### Schema-Driven Properties Panel
 
@@ -180,3 +182,37 @@ Files are persisted to IndexedDB for local storage:
 - `FileDatabase` (`js/FileDatabase.js`) - IndexedDB wrapper exposed as `window.fileDatabase`
 - `FileManager` (`js/FileManager.js`) - Handles save/load operations, auto-save, and dirty state tracking
 - `FileBrowserDialog` (`js/FileBrowserDialog.js`) - Modal UI for browsing, opening, and deleting saved files
+
+### Undo/Redo System
+
+The `HistoryManager` (`js/HistoryManager.js`) provides undo/redo functionality:
+
+#### How It Works
+
+- Uses a hybrid Command/Snapshot pattern - captures shape state before and after operations
+- Transactions batch continuous operations (drag, resize) into single undo actions
+- Listens to shape events (`shape:created`, `shape:deleted`, etc.) to auto-record actions
+- History clears on file load (`canvas:loaded` event)
+
+#### Transaction API
+
+For continuous operations like dragging, wrap with transactions:
+```javascript
+historyManager.beginTransaction('move', shapeId);
+// ... perform mutations ...
+historyManager.endTransaction();
+```
+
+Transaction types: `'move'`, `'resize'`, `'property'`
+
+#### Keyboard Shortcuts
+
+- **Ctrl+Z / Cmd+Z** - Undo
+- **Ctrl+Shift+Z / Cmd+Shift+Z** - Redo
+
+#### Integration Points
+
+When adding new mutation operations:
+1. For instantaneous changes (property edits): The event system auto-captures these
+2. For continuous changes (drag/resize): Wrap in `beginTransaction()`/`endTransaction()`
+3. PropertiesPanel uses micro-transactions with 300ms debounce for input fields

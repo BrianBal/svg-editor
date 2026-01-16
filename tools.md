@@ -7,41 +7,16 @@ This document lists SVG capabilities not yet supported, ordered by importance/fr
 ## Currently Supported
 
 - **Shapes**: Rectangle, Ellipse, Line, Polyline, Star, Text
-- **Attributes**: Stroke color, fill color, stroke width
+- **Attributes**: Stroke color, fill color, stroke width, opacity, stroke dash, linecap, linejoin
 - **Interactions**: Select, move, resize, point editing (polyline/line)
 - **File ops**: Save/load (IndexedDB), SVG import/export
+- **Editing**: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, Cmd+Z / Cmd+Shift+Z on Mac)
 
 ---
 
 ## Missing Features
 
-### 1. Undo/Redo
-**Priority: Critical**
-
-Most essential editing feature. Without it, mistakes are permanent.
-
-**Suggestion**: Implement command pattern with history stack.
-- Create `Command` base class with `execute()` and `undo()` methods
-- Commands: `CreateShapeCommand`, `DeleteShapeCommand`, `MoveShapeCommand`, `ResizeShapeCommand`, `ChangeAttributeCommand`
-- Store command history in `State.js` with `undoStack[]` and `redoStack[]`
-- Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Shift+Z (redo)
-
----
-
-### 2. Opacity/Transparency
-**Priority: High**
-
-Essential for layered designs, overlapping shapes, and visual depth.
-
-**Suggestion**: Add opacity slider (0-100%) to appearance panel.
-- Add `opacity` property to `Shape` base class (default: 1)
-- Apply via `element.setAttribute('opacity', this.opacity)`
-- UI: Range slider in appearance section
-- Support both fill-opacity and stroke-opacity for advanced use
-
----
-
-### 3. Gradient Fills
+### 1. Gradient Fills
 **Priority: High**
 
 Solid colors are limiting. Gradients are fundamental to modern design.
@@ -56,7 +31,7 @@ Solid colors are limiting. Gradients are fundamental to modern design.
 
 ---
 
-### 4. Rotation/Transform
+### 2. Rotation/Transform
 **Priority: High**
 
 Cannot rotate shapes at all currently. Major limitation.
@@ -70,7 +45,7 @@ Cannot rotate shapes at all currently. Major limitation.
 
 ---
 
-### 5. Path Tool (Bezier Curves)
+### 3. Path Tool (Bezier Curves)
 **Priority: High**
 
 Polylines only support straight segments. Paths enable curves.
@@ -87,7 +62,7 @@ Polylines only support straight segments. Paths enable curves.
 
 ---
 
-### 6. Copy/Paste
+### 4. Copy/Paste
 **Priority: High**
 
 Basic editing operation. Currently only "duplicate" exists.
@@ -102,7 +77,7 @@ Basic editing operation. Currently only "duplicate" exists.
 
 ---
 
-### 7. Multi-Select
+### 5. Multi-Select
 **Priority: High**
 
 Can only select one shape at a time. Limiting for batch operations.
@@ -116,7 +91,7 @@ Can only select one shape at a time. Limiting for batch operations.
 
 ---
 
-### 8. Alignment Tools
+### 6. Alignment Tools
 **Priority: Medium-High**
 
 Essential for precise layouts. Requires multi-select first.
@@ -130,7 +105,7 @@ Essential for precise layouts. Requires multi-select first.
 
 ---
 
-### 9. Stroke Dash Pattern
+### 7. Stroke Dash Pattern (UI Only)
 **Priority: Medium-High**
 
 Common for diagrams, borders, and decorative lines.
@@ -143,7 +118,7 @@ Common for diagrams, borders, and decorative lines.
 
 ---
 
-### 10. Rounded Rectangles
+### 8. Rounded Rectangles (UI Only)
 **Priority: Medium-High**
 
 Very common shape. Currently requires workarounds.
@@ -156,7 +131,7 @@ Very common shape. Currently requires workarounds.
 
 ---
 
-### 11. Circle Shape
+### 9. Circle Shape
 **Priority: Medium**
 
 Circles are distinct from ellipses conceptually. Minor but nice to have.
@@ -170,7 +145,7 @@ Circles are distinct from ellipses conceptually. Minor but nice to have.
 
 ---
 
-### 12. Groups
+### 10. Groups
 **Priority: Medium**
 
 Organization feature. Important for complex drawings.
@@ -185,7 +160,7 @@ Organization feature. Important for complex drawings.
 
 ---
 
-### 13. Text Formatting
+### 11. Text Formatting
 **Priority: Medium**
 
 Font size and family exist but aren't editable in UI.
@@ -200,7 +175,7 @@ Font size and family exist but aren't editable in UI.
 
 ---
 
-### 14. Grid & Snapping
+### 12. Grid & Snapping
 **Priority: Medium**
 
 Precision alignment without manual coordinate entry.
@@ -214,7 +189,7 @@ Precision alignment without manual coordinate entry.
 
 ---
 
-### 15. Keyboard Shortcuts
+### 13. Keyboard Shortcuts
 **Priority: Medium**
 
 Power user feature. Many shortcuts already logical but unimplemented.
@@ -228,7 +203,7 @@ Power user feature. Many shortcuts already logical but unimplemented.
 
 ---
 
-### 16. Stroke Line Caps & Joins
+### 14. Stroke Line Caps & Joins (UI Only)
 **Priority: Medium**
 
 Affects appearance of line endpoints and corners.
@@ -241,7 +216,7 @@ Affects appearance of line endpoints and corners.
 
 ---
 
-### 17. Zoom & Pan
+### 15. Zoom & Pan
 **Priority: Medium**
 
 Essential for detailed work on large canvases.
@@ -256,7 +231,7 @@ Essential for detailed work on large canvases.
 
 ---
 
-### 18. Markers (Arrowheads)
+### 16. Markers (Arrowheads)
 **Priority: Medium**
 
 Common for diagrams, flowcharts, and annotations.
@@ -271,7 +246,7 @@ Common for diagrams, flowcharts, and annotations.
 
 ---
 
-### 19. Layers Panel Improvements
+### 17. Layers Panel Improvements
 **Priority: Low-Medium**
 
 Current layers panel is basic.
@@ -286,7 +261,7 @@ Current layers panel is basic.
 
 ---
 
-### 20. Drop Shadow / Filters
+### 18. Drop Shadow / Filters
 **Priority: Low-Medium**
 
 Popular visual effect for depth and emphasis.
@@ -300,7 +275,7 @@ Popular visual effect for depth and emphasis.
 
 ---
 
-### 21. Pattern Fills
+### 19. Pattern Fills
 **Priority: Low**
 
 Repeating patterns for backgrounds and textures.
@@ -314,7 +289,7 @@ Repeating patterns for backgrounds and textures.
 
 ---
 
-### 22. Import Improvements
+### 20. Import Improvements
 **Priority: Low**
 
 Current import is limited (no paths, circles, text, transforms).
@@ -330,7 +305,7 @@ Current import is limited (no paths, circles, text, transforms).
 
 ---
 
-### 23. Export Options
+### 21. Export Options
 **Priority: Low**
 
 Currently only exports full SVG.
@@ -344,7 +319,7 @@ Currently only exports full SVG.
 
 ---
 
-### 24. Arc/Pie Shapes
+### 22. Arc/Pie Shapes
 **Priority: Low**
 
 Useful for charts and decorative elements.
@@ -357,7 +332,7 @@ Useful for charts and decorative elements.
 
 ---
 
-### 25. Clipping & Masking
+### 23. Clipping & Masking
 **Priority: Low**
 
 Advanced compositing feature.
@@ -370,29 +345,194 @@ Advanced compositing feature.
 
 ---
 
+### 24. Image Element
+**Priority: High**
+
+Embedding raster images is fundamental for many design workflows.
+
+**Suggestion**: Add image import and placement tool.
+- New `Image` shape class using `<image>` SVG element
+- Drag-drop image files onto canvas
+- File picker button in toolbar
+- Properties: x, y, width, height, preserveAspectRatio
+- Support common formats: PNG, JPG, GIF, WebP
+- Option: Embed as base64 or link to external URL
+- Resize handles maintain aspect ratio by default (Shift to unlock)
+
+---
+
+### 25. Polygon Shape
+**Priority: Medium**
+
+Closed arbitrary shapes (like Polyline but automatically closed).
+
+**Suggestion**: Add dedicated polygon tool.
+- New `Polygon` class extending `Shape`
+- Uses `<polygon>` SVG element (not `<path>`)
+- Similar to Polyline but automatically closes path
+- Click to add vertices, double-click to finish
+- Point editing mode for adjusting vertices
+- Useful for creating custom closed shapes like triangles, hexagons, etc.
+
+---
+
+### 26. Symbol & Use (Component Reuse)
+**Priority: Medium**
+
+Create reusable components that can be instanced multiple times efficiently.
+
+**Suggestion**: Support SVG symbols and use elements.
+- New `Symbol` class wrapping shapes in `<symbol>` within `<defs>`
+- New `SymbolInstance` class using `<use>` element
+- UI: "Create Symbol" button to convert selection to reusable symbol
+- Symbol library panel showing available symbols
+- Drag symbol from library to create instance
+- Edit symbol to update all instances
+- Properties on instance: x, y, width, height (overrides)
+
+---
+
+### 27. Text on Path
+**Priority: Low-Medium**
+
+Text that follows a curved path for decorative and design purposes.
+
+**Suggestion**: Support textPath element.
+- Extend `TextShape` with optional path binding
+- UI: "Attach to Path" option when text and path both selected
+- Uses `<textPath>` element referencing a path's ID
+- Properties: startOffset (position along path), text-anchor
+- Path must be a Path or Polyline shape
+- Text reflows when path is edited
+
+---
+
+### 28. Blend Modes
+**Priority: Low-Medium**
+
+Layer blending for visual effects and compositing.
+
+**Suggestion**: Add blend mode property to shapes.
+- Property: `mix-blend-mode` on shape elements
+- Modes: Normal, Multiply, Screen, Overlay, Darken, Lighten, Color-Dodge, Color-Burn, Hard-Light, Soft-Light, Difference, Exclusion, Hue, Saturation, Color, Luminosity
+- UI: Dropdown in appearance panel
+- Works with opacity for combined effects
+
+---
+
+### 29. SVG Animation
+**Priority: Low**
+
+Native SVG animations without JavaScript.
+
+**Suggestion**: Support SMIL animation elements.
+- Basic support for `<animate>` element
+- Properties that can be animated: position, size, color, opacity, transform
+- UI: Animation timeline panel (complex)
+- Simpler approach: Preset animations (pulse, fade, spin, bounce)
+- Export option to include or strip animations
+- Note: SMIL has limited browser support; consider CSS animations as alternative
+
+---
+
+### 30. Accessibility (Title & Description)
+**Priority: Low**
+
+Proper accessibility metadata for screen readers and SEO.
+
+**Suggestion**: Support title and desc elements.
+- Add `<title>` and `<desc>` elements to shapes
+- UI: "Accessibility" section in properties panel
+- Title field: Short label for the shape
+- Description field: Longer description of purpose
+- Also support document-level title/desc on root `<svg>`
+- Improves screen reader compatibility
+
+---
+
+### 31. Foreign Object (HTML Embedding)
+**Priority: Low**
+
+Embed HTML content within SVG for rich text or interactive elements.
+
+**Suggestion**: Support foreignObject element.
+- New `ForeignObject` shape class
+- Properties: x, y, width, height
+- Contains HTML content (div with contenteditable)
+- Use cases: Rich formatted text, forms, iframes
+- UI: Insert HTML block tool
+- Note: Limited support when SVG is used as image
+
+---
+
+### 32. Additional Filter Effects
+**Priority: Low**
+
+Expand filter capabilities beyond basic drop shadow.
+
+**Suggestion**: Add more SVG filter primitives.
+- **Morphology** (erode/dilate): Thicken or thin shapes
+- **Turbulence**: Generate noise/texture patterns
+- **Displacement Map**: Warp shapes using another image
+- **Lighting Effects**: feDistantLight, fePointLight, feSpotLight
+- **Blend**: feBlend for compositing layers
+- **Composite**: feComposite for boolean operations on filter results
+- **Tile**: feTile for repeating patterns
+- UI: Filter stack editor allowing multiple effects to be chained
+- Presets: Emboss, Bevel, Inner Shadow, Outer Glow, Noise
+
+---
+
+### 33. Stroke Miter Limit
+**Priority: Low**
+
+Control how sharp corners are rendered when using miter joins.
+
+**Suggestion**: Add stroke-miterlimit property.
+- Applies when `stroke-linejoin` is set to "miter"
+- Determines when miter join switches to bevel (for very sharp angles)
+- Default value: 4
+- UI: Number input in stroke section (visible when linejoin is miter)
+- Higher values allow sharper points, lower values bevel sooner
+
+---
+
 ## Implementation Phases
 
-**Phase 1 - Essential Editing**
-1. Undo/Redo
+**Phase 1 - Essential Editing** *(Partially Complete)*
+1. ~~Undo/Redo~~ ✓
 2. Copy/Paste
-3. Keyboard shortcuts
-4. Opacity
+3. Keyboard shortcuts (partially done)
+4. ~~Opacity~~ ✓
 
 **Phase 2 - Visual Features**
 5. Gradients
 6. Rotation
-7. Rounded rectangles
-8. Stroke dash patterns
+7. Rounded rectangles (UI only - property exists)
+8. Stroke dash patterns (UI only - property exists)
+9. Image element
 
 **Phase 3 - Advanced Tools**
-9. Path tool (bezier)
-10. Multi-select
-11. Alignment tools
-12. Grid & snapping
+10. Path tool (bezier)
+11. Multi-select
+12. Alignment tools
+13. Grid & snapping
+14. Polygon shape
 
 **Phase 4 - Polish**
-13. Groups
-14. Text formatting
-15. Zoom & pan
-16. Markers
-17. Filters
+15. Groups
+16. Text formatting
+17. Zoom & pan (partially done)
+18. Markers
+19. Filters (drop shadow, blur)
+20. Symbol & Use (components)
+21. Blend modes
+
+**Phase 5 - Advanced Features**
+22. Text on path
+23. Additional filter effects
+24. Clipping & masking
+25. Animation (basic)
+26. Accessibility (title/desc)
+27. Foreign object
+28. Stroke miter limit

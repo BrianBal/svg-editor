@@ -82,6 +82,13 @@ class SVGCanvas {
             this.isDragging = true;
             this.dragStart = pos;
 
+            if (window.historyManager && appState.selectedShapeId) {
+                historyManager.beginTransaction(
+                    this.activeHandle.type === 'resize' ? 'resize' : 'move',
+                    appState.selectedShapeId
+                );
+            }
+
             if (this.activeHandle.type === 'point') {
                 this.selection.selectPoint(parseInt(this.activeHandle.data));
             }
@@ -108,6 +115,10 @@ class SVGCanvas {
 
     handleMouseUp(e) {
         const pos = this.getMousePosition(e);
+
+        if (window.historyManager && this.activeHandle) {
+            historyManager.endTransaction();
+        }
 
         this.isDragging = false;
         this.activeHandle = null;

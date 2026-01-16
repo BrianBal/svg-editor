@@ -76,9 +76,6 @@ class FileManager {
         // Update size BEFORE loading content so canvas:loaded has correct dimensions
         if (file.width && file.height) {
             this.canvas.updateSize(file.width, file.height, file.viewBox || `0 0 ${file.width} ${file.height}`);
-            document.getElementById('svg-width').value = file.width;
-            document.getElementById('svg-height').value = file.height;
-            document.getElementById('svg-viewbox').value = file.viewBox || `0 0 ${file.width} ${file.height}`;
         }
 
         if (file.content) {

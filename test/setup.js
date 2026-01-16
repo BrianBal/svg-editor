@@ -17,6 +17,7 @@ const files = [
     { file: 'Polyline.js', className: 'Polyline' },
     { file: 'Line.js', className: 'Line' },
     { file: 'TextShape.js', className: 'TextShape' },
+    { file: 'HistoryManager.js', className: 'HistoryManager' },
 ];
 
 // Load each file and extract the class into globalThis
@@ -58,4 +59,10 @@ beforeEach(() => {
             <g id="handles-layer"></g>
         </svg>
     `;
+
+    // Fresh HistoryManager for each test
+    globalThis.historyManager = new globalThis.HistoryManager();
+    if (typeof window !== 'undefined') {
+        window.historyManager = globalThis.historyManager;
+    }
 });

@@ -197,6 +197,18 @@ class App {
                     appState.setTool('select');
                     break;
 
+                case 'z':
+                case 'Z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            historyManager.redo();
+                        } else {
+                            historyManager.undo();
+                        }
+                    }
+                    break;
+
                 case 'v':
                 case 'V':
                     if (!e.ctrlKey && !e.metaKey) {
@@ -298,7 +310,13 @@ class App {
         const shape = appState.getSelectedShape();
         if (!shape) return;
 
+        if (window.historyManager) {
+            historyManager.beginTransaction('move', shape.id);
+        }
         shape.move(dx, dy);
+        if (window.historyManager) {
+            historyManager.endTransaction();
+        }
         this.canvas.selection.updateHandles();
     }
 }

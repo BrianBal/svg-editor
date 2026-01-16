@@ -32,6 +32,9 @@ class State {
     removeShape(id) {
         const index = this.shapes.findIndex(s => s.id === id);
         if (index > -1) {
+            if (window.historyManager) {
+                historyManager.captureDeleteIndex(id);
+            }
             const shape = this.shapes.splice(index, 1)[0];
             eventBus.emit('shape:deleted', shape);
         }

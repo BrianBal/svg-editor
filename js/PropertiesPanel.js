@@ -544,6 +544,16 @@ class PropertiesPanel {
     }
 
     setValue(key, prop, target, value) {
+        // Start micro-transaction for shape property changes
+        if (window.historyManager && !historyManager.isInTransaction() && target.id && target.type) {
+            historyManager.beginTransaction('property', target.id);
+            // Auto-commit after input settles
+            clearTimeout(this._propertyTransactionTimeout);
+            this._propertyTransactionTimeout = setTimeout(() => {
+                historyManager.endTransaction();
+            }, 300);
+        }
+
         if (prop.set) {
             prop.set(target, value);
         } else if (typeof target[`set${key.charAt(0).toUpperCase() + key.slice(1)}`] === 'function') {
