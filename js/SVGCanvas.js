@@ -109,6 +109,7 @@ class SVGCanvas {
 
     handleMouseMove(e) {
         const pos = this.getMousePosition(e);
+        this.shiftKey = e.shiftKey;
 
         if (this.isDragging && this.activeHandle) {
             this.handleHandleDrag(pos);
@@ -147,7 +148,9 @@ class SVGCanvas {
         const shape = appState.getShapeById(appState.selectedShapeId);
         if (!shape) return;
 
-        if (this.activeHandle.type === 'resize') {
+        if (this.activeHandle.type === 'rotate') {
+            this.handleRotation(shape, pos);
+        } else if (this.activeHandle.type === 'resize') {
             this.handleBoundsResize(shape, pos);
         } else if (this.activeHandle.type === 'point') {
             if (shape.type === 'polyline') {
@@ -156,6 +159,25 @@ class SVGCanvas {
                 this.handleLinePointMove(shape, pos);
             }
         }
+    }
+
+    handleRotation(shape, pos) {
+        const bounds = shape.getBounds();
+        const cx = bounds.x + bounds.width / 2;
+        const cy = bounds.y + bounds.height / 2;
+
+        // Calculate angle from center to mouse position
+        let angle = Math.atan2(pos.y - cy, pos.x - cx) * (180 / Math.PI);
+
+        // Offset by 90° since handle is at top (0° = up)
+        angle = (angle + 90 + 360) % 360;
+
+        // Snap to 15° increments if Shift held
+        if (this.shiftKey) {
+            angle = Math.round(angle / 15) * 15;
+        }
+
+        shape.setRotation(angle);
     }
 
     handleBoundsResize(shape, pos) {

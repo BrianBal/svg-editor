@@ -101,13 +101,30 @@ class FileManager {
     }
 
     parseShapes(svgElement) {
+        // First, parse gradient definitions from <defs>
+        this.gradientMap = {};
+        const defs = svgElement.querySelector('defs');
+        if (defs) {
+            defs.querySelectorAll('linearGradient, radialGradient').forEach(gradientEl => {
+                const gradient = Gradient.fromSVGElement(gradientEl);
+                this.gradientMap[gradient.id] = gradient;
+            });
+        }
+
         svgElement.querySelectorAll('rect').forEach(rect => {
+            // Skip canvas background rect
+            if (rect.getAttribute('id') === 'canvas-background') {
+                return;
+            }
             const shape = new Rectangle(
                 parseFloat(rect.getAttribute('x')) || 0,
                 parseFloat(rect.getAttribute('y')) || 0,
                 parseFloat(rect.getAttribute('width')) || 100,
                 parseFloat(rect.getAttribute('height')) || 100
             );
+            // Parse corner radius
+            const rx = parseFloat(rect.getAttribute('rx'));
+            if (rx) shape.rx = rx;
             this.applyCommonAttributes(shape, rect);
             this.canvas.addShape(shape);
         });
@@ -189,8 +206,36 @@ class FileManager {
         const strokeWidth = element.getAttribute('stroke-width');
 
         shape.stroke = stroke || 'none';
-        shape.fill = fill || 'none';
         if (strokeWidth) shape.strokeWidth = parseFloat(strokeWidth);
+
+        // Handle fill - check if it's a gradient reference
+        if (fill && fill.startsWith('url(#')) {
+            const gradientId = fill.match(/url\(#([^)]+)\)/)?.[1];
+            if (gradientId && this.gradientMap && this.gradientMap[gradientId]) {
+                const gradient = this.gradientMap[gradientId].clone();
+                shape.fillGradient = gradient;
+                shape.fill = `url(#${gradient.id})`;
+                // Register gradient with manager
+                if (typeof gradientManager !== 'undefined') {
+                    gradientManager.addOrUpdateGradient(gradient);
+                }
+            } else {
+                shape.fill = 'none';
+                shape.fillGradient = null;
+            }
+        } else {
+            shape.fill = fill || 'none';
+            shape.fillGradient = null;
+        }
+
+        // Parse transform attribute for rotation
+        const transform = element.getAttribute('transform');
+        if (transform) {
+            const rotateMatch = transform.match(/rotate\(\s*([\d.-]+)/);
+            if (rotateMatch) {
+                shape.rotation = parseFloat(rotateMatch[1]) || 0;
+            }
+        }
     }
 
     async saveCurrentFile() {
@@ -250,6 +295,12 @@ class FileManager {
         const handlesLayer = svg.querySelector('#handles-layer');
         if (handlesLayer) {
             handlesLayer.remove();
+        }
+
+        // Remove background rect (not a user shape)
+        const backgroundRect = svg.querySelector('#canvas-background');
+        if (backgroundRect) {
+            backgroundRect.remove();
         }
 
         svg.querySelectorAll('[data-shape-id]').forEach(el => {

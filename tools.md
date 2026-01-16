@@ -9,29 +9,16 @@ This document lists SVG capabilities not yet supported, ordered by importance/fr
 - **Shapes**: Rectangle, Ellipse, Line, Polyline, Star, Text
 - **Attributes**: Stroke color, fill color, stroke width, opacity, stroke dash, linecap, linejoin
 - **Gradient Fills**: Linear and radial gradients with multi-stop support, angle control, interactive stop editing
-- **Interactions**: Select, move, resize, point editing (polyline/line)
-- **File ops**: Save/load (IndexedDB), SVG import/export (including gradients)
+- **Rotation/Transform**: Rotation property, rotation handle UI (drag to rotate, Shift for 15° snap), flip horizontal/vertical
+- **Interactions**: Select, move, resize, rotate, point editing (polyline/line)
+- **File ops**: Save/load (IndexedDB), SVG import/export (including gradients, rotation)
 - **Editing**: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, Cmd+Z / Cmd+Shift+Z on Mac)
 
 ---
 
 ## Missing Features
 
-### 1. Rotation/Transform
-**Priority: High**
-
-Cannot rotate shapes at all currently. Major limitation.
-
-**Suggestion**: Add rotation handle and transform support.
-- Add rotation handle (circular icon) above selection box
-- Store `rotation` property on shapes (degrees, default: 0)
-- Apply via `transform="rotate(angle, cx, cy)"` attribute
-- UI: Rotation angle input in properties panel
-- Hold Shift while rotating to snap to 15° increments
-
----
-
-### 3. Path Tool (Bezier Curves)
+### 1. Path Tool (Bezier Curves)
 **Priority: High**
 
 Polylines only support straight segments. Paths enable curves.
@@ -491,9 +478,9 @@ Control how sharp corners are rendered when using miter joins.
 3. Keyboard shortcuts (partially done)
 4. ~~Opacity~~ ✓
 
-**Phase 2 - Visual Features**
+**Phase 2 - Visual Features** *(Partially Complete)*
 5. ~~Gradients~~ ✓
-6. Rotation
+6. ~~Rotation/Transform~~ ✓ (rotation property, rotation handle, flip H/V, 15° snap with Shift)
 7. Rounded rectangles (UI only - property exists)
 8. Stroke dash patterns (UI only - property exists)
 9. Image element

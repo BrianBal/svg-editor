@@ -24,6 +24,7 @@ class Shape {
         this.strokeLinejoin = 'miter';
         this.element = null;
         this.visible = true;
+        this.rotation = 0;
     }
 
     createSVGElement() {
@@ -122,6 +123,43 @@ class Shape {
         eventBus.emit('shape:updated', this);
     }
 
+    setRotation(degrees) {
+        this.rotation = ((degrees % 360) + 360) % 360; // Normalize to 0-360
+        if (this.element) {
+            this.applyRotationTransform(this.element);
+        }
+        eventBus.emit('shape:updated', this);
+    }
+
+    applyRotationTransform(element) {
+        if (this.rotation !== 0) {
+            const bounds = this.getBounds();
+            const cx = bounds.x + bounds.width / 2;
+            const cy = bounds.y + bounds.height / 2;
+            element.setAttribute('transform', `rotate(${this.rotation}, ${cx}, ${cy})`);
+        } else {
+            element.removeAttribute('transform');
+        }
+    }
+
+    flipHorizontal() {
+        // Mirror rotation around Y-axis: newAngle = (180 - angle)
+        this.rotation = ((180 - this.rotation) % 360 + 360) % 360;
+        if (this.element) {
+            this.applyRotationTransform(this.element);
+        }
+        eventBus.emit('shape:updated', this);
+    }
+
+    flipVertical() {
+        // Mirror rotation around X-axis: newAngle = (360 - angle)
+        this.rotation = ((360 - this.rotation) % 360 + 360) % 360;
+        if (this.element) {
+            this.applyRotationTransform(this.element);
+        }
+        eventBus.emit('shape:updated', this);
+    }
+
     applyStrokeDash(element) {
         switch (this.strokeDash) {
             case 'dashed':
@@ -151,6 +189,9 @@ class Shape {
             gradientManager.addOrUpdateGradient(this.fillGradient);
         }
         element.setAttribute('fill', this.fill);
+
+        // Apply rotation transform
+        this.applyRotationTransform(element);
     }
 
     clone() {
@@ -165,6 +206,7 @@ class Shape {
         shape.strokeLinecap = this.strokeLinecap;
         shape.strokeLinejoin = this.strokeLinejoin;
         shape.visible = this.visible;
+        shape.rotation = this.rotation;
 
         // Handle fill with gradient support
         if (this.fillGradient) {

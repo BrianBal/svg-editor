@@ -103,6 +103,7 @@ All shapes inherit these base properties from `Shape`:
 - `strokeDash` - Line style: `'solid'`, `'dashed'`, `'dotted'`
 - `strokeLinecap` - Line endings: `'butt'`, `'round'`, `'square'`
 - `strokeLinejoin` - Corner style: `'miter'`, `'round'`, `'bevel'`
+- `rotation` - Rotation angle in degrees (0-360)
 
 Shape-specific properties:
 - `Rectangle`: `rx` (corner radius)
@@ -128,7 +129,7 @@ Tools handle canvas interactions and follow a common interface:
 ### Key Classes
 
 - `SVGCanvas` - Main canvas controller; manages shape lifecycle and tool delegation
-- `Selection` - Handles selection visualization and resize/point handles
+- `Selection` - Handles selection visualization, resize handles, and rotation handle
 - `LayersPanel` - UI for layer ordering and visibility
 - `PropertiesPanel` - Schema-driven property editor (see below)
 - `SVGLoader` - File import/export functionality
@@ -173,6 +174,32 @@ The fill property uses a custom `'fill'` type that renders:
 Gradients are fully serialized for undo/redo and file persistence:
 - `HistoryManager` serializes `fillGradient` in shape state
 - `SVGLoader` imports gradients from `<defs>` and exports them on save
+
+### Rotation & Transform System
+
+Shapes support rotation via the `transform` SVG attribute.
+
+#### How It Works
+
+1. Each shape has a `rotation` property (0-360 degrees)
+2. Rotation is applied via `transform="rotate(angle, cx, cy)"` centered on the shape's bounding box
+3. Methods: `setRotation(degrees)`, `flipHorizontal()`, `flipVertical()`
+
+#### UI Components
+
+- **Rotation Handle**: Circular handle above the selection box, drag to rotate
+- **Shift Key**: Hold while dragging to snap to 15° increments
+- **Properties Panel**: Rotation input (degrees) and Flip H/V buttons in Transform section
+
+#### Flip Operations
+
+- `flipHorizontal()`: Mirrors rotation around Y-axis (180 - angle)
+- `flipVertical()`: Mirrors rotation around X-axis (360 - angle)
+
+#### Persistence
+
+- Rotation is serialized in `HistoryManager` for undo/redo
+- Rotation is saved/loaded via `FileManager` (parsed from `transform` attribute)
 
 ### Schema-Driven Properties Panel
 

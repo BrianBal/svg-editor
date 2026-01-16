@@ -161,6 +161,29 @@ const BaseShapeProperties = {
             }
         }
     },
+    rotation: {
+        type: 'number',
+        label: 'Rotation',
+        group: 'transform',
+        suffix: '°',
+        min: 0,
+        max: 360,
+        step: 1,
+        get: (shape) => Math.round(shape.rotation || 0),
+        set: (shape, value) => shape.setRotation(value)
+    },
+    flipHorizontal: {
+        type: 'button',
+        label: 'Flip Horizontal',
+        group: 'transform',
+        action: (shape) => shape.flipHorizontal()
+    },
+    flipVertical: {
+        type: 'button',
+        label: 'Flip Vertical',
+        group: 'transform',
+        action: (shape) => shape.flipVertical()
+    },
 
     // Appearance group
     fill: {
@@ -449,20 +472,18 @@ class PropertiesPanel {
     }
 
     renderTransformGroup(section, props, target) {
-        // Render X/Y as a pair
-        const xProp = props.find(p => p.key === 'x');
-        const yProp = props.find(p => p.key === 'y');
-        if (xProp && yProp) {
-            const row = this.renderNumberPair(xProp, yProp, target);
-            section.appendChild(row);
-        }
+        // Render each transform property on its own row for better spacing
+        const order = ['x', 'y', 'width', 'height', 'rotation', 'flipHorizontal', 'flipVertical'];
 
-        // Render W/H as a pair
-        const wProp = props.find(p => p.key === 'width');
-        const hProp = props.find(p => p.key === 'height');
-        if (wProp && hProp && !wProp.prop.hidden && !hProp.prop.hidden) {
-            const row = this.renderNumberPair(wProp, hProp, target);
-            section.appendChild(row);
+        for (const key of order) {
+            const propData = props.find(p => p.key === key);
+            if (propData && !propData.prop.hidden) {
+                const value = this.getValue(propData.key, propData.prop, target);
+                const row = this.renderControl(propData.key, propData.prop, value, target);
+                if (row) {
+                    section.appendChild(row);
+                }
+            }
         }
     }
 

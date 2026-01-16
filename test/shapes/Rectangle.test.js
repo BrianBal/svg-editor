@@ -189,4 +189,89 @@ describe('Rectangle', () => {
             expect(() => rect.updateElement()).not.toThrow();
         });
     });
+
+    describe('rotation', () => {
+        it('defaults to 0 rotation', () => {
+            expect(rect.rotation).toBe(0);
+        });
+
+        it('setRotation normalizes to 0-360', () => {
+            rect.setRotation(450);
+            expect(rect.rotation).toBe(90);
+
+            rect.setRotation(-90);
+            expect(rect.rotation).toBe(270);
+
+            rect.setRotation(360);
+            expect(rect.rotation).toBe(0);
+        });
+
+        it('emits shape:updated on setRotation', () => {
+            rect.setRotation(45);
+            expect(emitSpy).toHaveBeenCalledWith('shape:updated', rect);
+        });
+
+        it('applies transform attribute when rotated', () => {
+            rect.createSVGElement();
+            rect.setRotation(45);
+
+            const transform = rect.element.getAttribute('transform');
+            expect(transform).toContain('rotate(45');
+        });
+
+        it('removes transform attribute when rotation is 0', () => {
+            rect.createSVGElement();
+            rect.setRotation(45);
+            rect.setRotation(0);
+
+            expect(rect.element.getAttribute('transform')).toBeNull();
+        });
+
+        it('rotation is copied when cloning', () => {
+            rect.rotation = 90;
+            const copy = rect.clone();
+
+            expect(copy.rotation).toBe(90);
+        });
+    });
+
+    describe('flip', () => {
+        it('flipHorizontal mirrors rotation around Y-axis', () => {
+            rect.rotation = 30;
+            rect.flipHorizontal();
+
+            expect(rect.rotation).toBe(150); // 180 - 30
+        });
+
+        it('flipHorizontal at 0 degrees gives 180', () => {
+            rect.rotation = 0;
+            rect.flipHorizontal();
+
+            expect(rect.rotation).toBe(180);
+        });
+
+        it('flipVertical mirrors rotation around X-axis', () => {
+            rect.rotation = 30;
+            rect.flipVertical();
+
+            expect(rect.rotation).toBe(330); // 360 - 30
+        });
+
+        it('flipVertical at 0 degrees stays at 0', () => {
+            rect.rotation = 0;
+            rect.flipVertical();
+
+            expect(rect.rotation).toBe(0);
+        });
+
+        it('flipHorizontal emits shape:updated', () => {
+            rect.flipHorizontal();
+            expect(emitSpy).toHaveBeenCalledWith('shape:updated', rect);
+        });
+
+        it('flipVertical emits shape:updated', () => {
+            rect.flipVertical();
+            expect(emitSpy).toHaveBeenCalledWith('shape:updated', rect);
+        });
+    });
 });

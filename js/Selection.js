@@ -47,6 +47,36 @@ class Selection {
             const handle = this.createHandle(pos.x, pos.y, pos.name, 'resize');
             this.handlesLayer.appendChild(handle);
         });
+
+        // Add rotation handle 25px above top-center
+        const rotateHandleX = bounds.x + bounds.width / 2;
+        const rotateHandleY = bounds.y - 25;
+
+        // Connecting line from top-center to rotation handle
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', rotateHandleX);
+        line.setAttribute('y1', bounds.y);
+        line.setAttribute('x2', rotateHandleX);
+        line.setAttribute('y2', rotateHandleY);
+        line.setAttribute('stroke', '#4a90d9');
+        line.setAttribute('stroke-width', '1');
+        line.classList.add('rotation-line');
+        line.style.pointerEvents = 'none';
+        this.handlesLayer.appendChild(line);
+
+        // Circular rotation handle
+        const rotateHandle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        rotateHandle.setAttribute('cx', rotateHandleX);
+        rotateHandle.setAttribute('cy', rotateHandleY);
+        rotateHandle.setAttribute('r', 5);
+        rotateHandle.setAttribute('fill', '#4a90d9');
+        rotateHandle.setAttribute('stroke', '#ffffff');
+        rotateHandle.setAttribute('stroke-width', '1');
+        rotateHandle.classList.add('handle', 'handle-rotate');
+        rotateHandle.dataset.handleType = 'rotate';
+        rotateHandle.dataset.handleData = 'rotation';
+        rotateHandle.style.cursor = 'grab';
+        this.handlesLayer.appendChild(rotateHandle);
     }
 
     showLineHandles(shape) {

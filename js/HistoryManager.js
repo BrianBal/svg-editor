@@ -273,7 +273,8 @@ class HistoryManager {
             strokeDash: shape.strokeDash,
             strokeLinecap: shape.strokeLinecap,
             strokeLinejoin: shape.strokeLinejoin,
-            visible: shape.visible
+            visible: shape.visible,
+            rotation: shape.rotation || 0
         };
 
         switch (shape.type) {
@@ -353,6 +354,7 @@ class HistoryManager {
             shape.strokeLinecap = state.strokeLinecap;
             shape.strokeLinejoin = state.strokeLinejoin;
             shape.visible = state.visible;
+            shape.rotation = state.rotation || 0;
 
             // Restore fill with gradient support
             if (state.fillGradient) {
@@ -420,6 +422,7 @@ class HistoryManager {
         shape.strokeLinecap = state.strokeLinecap;
         shape.strokeLinejoin = state.strokeLinejoin;
         shape.visible = state.visible;
+        shape.rotation = state.rotation || 0;
 
         // Handle fill with gradient support
         if (state.fillGradient) {
