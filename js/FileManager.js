@@ -174,10 +174,14 @@ class FileManager {
         });
 
         svgElement.querySelectorAll('text').forEach(text => {
+            const fontSize = parseFloat(text.getAttribute('font-size')) || 24;
+            const fontFamily = text.getAttribute('font-family') || 'Arial';
             const shape = new TextShape(
                 parseFloat(text.getAttribute('x')) || 0,
                 parseFloat(text.getAttribute('y')) || 0,
-                text.textContent || 'Text'
+                text.textContent || 'Text',
+                fontSize,
+                fontFamily
             );
             this.applyCommonAttributes(shape, text);
             this.canvas.addShape(shape);

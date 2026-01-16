@@ -192,5 +192,25 @@ describe('FileManager', () => {
             expect(solidShape.fill).toBe('#00ff00');
             expect(solidShape.fillGradient).toBeNull();
         });
+
+        it('parses text elements with fontSize and fontFamily', () => {
+            const svgWithText = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <text x="100" y="200" font-size="48" font-family="Georgia">Hello World</text>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithText, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            expect(mockCanvas.addShape).toHaveBeenCalledTimes(1);
+            const shape = mockCanvas.addShape.mock.calls[0][0];
+            expect(shape.x).toBe(100);
+            expect(shape.y).toBe(200);
+            expect(shape.text).toBe('Hello World');
+            expect(shape.fontSize).toBe(48);
+            expect(shape.fontFamily).toBe('Georgia');
+        });
     });
 });
