@@ -14,25 +14,11 @@ This document lists SVG capabilities not yet supported, ordered by importance/fr
 - **Tools**: Pen tool for bezier paths (click for corners, click+drag for curves, close path detection)
 - **File ops**: Save/load (IndexedDB), SVG import/export (including gradients, rotation, paths)
 - **Editing**: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, Cmd+Z / Cmd+Shift+Z on Mac)
+- **Clipboard**: Copy/Cut/Paste using system clipboard (Ctrl+C, Ctrl+X, Ctrl+V) - copies as SVG text, supports pasting SVG from external sources
 
 ---
 
 ## Missing Features
-
-### 4. Copy/Paste
-**Priority: High**
-
-Basic editing operation. Currently only "duplicate" exists.
-
-**Suggestion**: Implement clipboard operations.
-- Store copied shape(s) in `State.clipboardShapes`
-- Ctrl+C: Copy selected shape to clipboard
-- Ctrl+V: Paste at mouse position or center with offset
-- Ctrl+X: Cut (copy + delete)
-- Ctrl+D: Duplicate in place (existing behavior)
-- Support multi-shape copy when multi-select is added
-
----
 
 ### 5. Alignment Tools
 **Priority: Medium-High**
@@ -442,9 +428,9 @@ Control how sharp corners are rendered when using miter joins.
 
 ## Implementation Phases
 
-**Phase 1 - Essential Editing** *(Partially Complete)*
+**Phase 1 - Essential Editing** *(Complete)*
 1. ~~Undo/Redo~~ ✓
-2. Copy/Paste
+2. ~~Copy/Paste~~ ✓ (system clipboard, SVG text format, multi-shape support)
 3. Keyboard shortcuts (partially done)
 4. ~~Opacity~~ ✓
 

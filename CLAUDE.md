@@ -174,8 +174,35 @@ The `PenTool` creates bezier curve paths with control handles:
 - `PropertiesPanel` - Schema-driven property editor (see below)
 - `SVGLoader` - File import/export functionality
 - `HistoryManager` - Undo/redo system exposed as `window.historyManager`
+- `ClipboardManager` - Copy/cut/paste using system clipboard, exposed as `window.clipboardManager`
 - `Gradient` - Gradient data model for linear/radial gradients
 - `GradientManager` - Manages SVG `<defs>` element and gradient elements
+
+### Clipboard System
+
+The `ClipboardManager` (`js/ClipboardManager.js`) handles copy/cut/paste operations using the system clipboard with SVG text format.
+
+#### Keyboard Shortcuts
+
+- **Ctrl+C / Cmd+C** - Copy selected shapes as SVG
+- **Ctrl+X / Cmd+X** - Cut (copy then delete)
+- **Ctrl+V / Cmd+V** - Paste SVG from clipboard
+
+#### How It Works
+
+1. **Copy**: Generates SVG containing only selected shapes and their gradients via `generateSVGFragment()`, writes to system clipboard with `navigator.clipboard.writeText()`
+
+2. **Paste**: Reads SVG text from clipboard, parses shapes using same patterns as `FileManager.parseShapes()`, offsets positions to avoid overlap, adds to canvas, selects pasted shapes
+
+3. **Offset Stacking**: Consecutive pastes offset by 20px increments (20, 40, 60...). Counter resets on new copy.
+
+#### Features
+
+- Copies as valid SVG text (can paste into text editors)
+- Pastes SVG from any source (external editors, other applications)
+- Supports multiple shapes with gradients
+- Preserves stroke, fill, rotation, and other attributes
+- Integrates with undo/redo (shape creation auto-tracked by HistoryManager)
 
 ### Gradient System
 

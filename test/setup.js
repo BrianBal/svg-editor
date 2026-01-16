@@ -22,6 +22,7 @@ const files = [
     { file: 'Line.js', className: 'Line' },
     { file: 'TextShape.js', className: 'TextShape' },
     { file: 'HistoryManager.js', className: 'HistoryManager' },
+    { file: 'ClipboardManager.js', className: 'ClipboardManager' },
     { file: 'PenTool.js', className: 'PenTool' },
 ];
 
@@ -70,5 +71,11 @@ beforeEach(() => {
     globalThis.historyManager = new globalThis.HistoryManager();
     if (typeof window !== 'undefined') {
         window.historyManager = globalThis.historyManager;
+    }
+
+    // Fresh ClipboardManager for each test
+    globalThis.clipboardManager = new globalThis.ClipboardManager();
+    if (typeof window !== 'undefined') {
+        window.clipboardManager = globalThis.clipboardManager;
     }
 });

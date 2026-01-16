@@ -213,9 +213,28 @@ class App {
                     }
                     break;
 
+                case 'c':
+                case 'C':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.copy();
+                    }
+                    break;
+
+                case 'x':
+                case 'X':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.cut();
+                    }
+                    break;
+
                 case 'v':
                 case 'V':
-                    if (!e.ctrlKey && !e.metaKey) {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.paste();
+                    } else {
                         appState.setTool('select');
                     }
                     break;
