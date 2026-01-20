@@ -6,6 +6,9 @@ const PropertyGroups = {
     document: { label: 'Document', order: 1 },
     defaults: { label: 'Default Styles', order: 2 },
 
+    // Selected point context (shown above shape properties)
+    selectedPoint: { label: 'Selected Point', order: 0 },
+
     // Shape context
     transform: { label: 'Transform', order: 1 },
     appearance: { label: 'Appearance', order: 2 },
@@ -345,6 +348,8 @@ class PropertiesPanel {
         eventBus.on('shape:deselected', () => this.render());
         eventBus.on('shape:updated', (shape) => this.updateValues(shape));
         eventBus.on('tool:changed', (tool) => this.onToolChanged(tool));
+        // Listen for point selection changes
+        eventBus.on('point:selected', () => this.render());
     }
 
     onToolChanged(toolName) {
@@ -373,6 +378,16 @@ class PropertiesPanel {
 
         let schema, target;
 
+        // Check for selected point and render at top
+        if (context.shapes.length === 1) {
+            const shape = context.shapes[0];
+            const pointIndex = this.canvas.selection?.getSelectedPointIndex();
+            if (pointIndex !== null && (shape.type === 'polyline' || shape.type === 'path')) {
+                const pointSchema = this.getSelectedPointSchema(shape, pointIndex);
+                this.renderSelectedPointSection(pointSchema, shape, pointIndex);
+            }
+        }
+
         if (context.shapes.length > 1) {
             // Multiple shapes selected - show common properties only
             schema = this.getCommonSchema(context.shapes);
@@ -396,6 +411,104 @@ class PropertiesPanel {
         this.renderSchema(schema, target);
     }
 
+    /**
+     * Render the Selected Point section at the top of the panel.
+     * @param {Object} schema - Point property schema
+     * @param {Shape} shape - The shape containing the point
+     * @param {number} pointIndex - Index of the selected point
+     */
+    renderSelectedPointSection(schema, shape, pointIndex) {
+        const groupConfig = PropertyGroups.selectedPoint;
+        const isCollapsed = this.collapsedSections.selectedPoint || false;
+
+        const section = document.createElement('section');
+        section.className = 'properties-section selected-point-section';
+        if (isCollapsed) section.classList.add('collapsed');
+        section.dataset.group = 'selectedPoint';
+
+        // Header
+        const header = document.createElement('h3');
+        header.className = 'section-header';
+
+        const chevron = document.createElement('span');
+        chevron.className = 'section-chevron';
+        chevron.textContent = '▼';
+        header.appendChild(chevron);
+
+        const labelText = document.createElement('span');
+        labelText.textContent = `${groupConfig.label} ${pointIndex + 1}`;
+        header.appendChild(labelText);
+
+        header.addEventListener('click', () => {
+            this.toggleSection('selectedPoint');
+            section.classList.toggle('collapsed');
+        });
+
+        section.appendChild(header);
+
+        // Content
+        const content = document.createElement('div');
+        content.className = 'section-content';
+
+        // Group handle properties together if they exist
+        const hasHandleIn = schema.handleInX && schema.handleInY;
+        const hasHandleOut = schema.handleOutX && schema.handleOutY;
+
+        // Anchor point coordinates
+        const anchorLabel = document.createElement('div');
+        anchorLabel.className = 'selected-point-sublabel';
+        anchorLabel.textContent = 'Anchor';
+        content.appendChild(anchorLabel);
+
+        for (const key of ['pointX', 'pointY']) {
+            if (schema[key]) {
+                const value = this.getValue(key, schema[key], shape);
+                const control = this.renderControl(key, schema[key], value, shape);
+                if (control) {
+                    content.appendChild(control);
+                    this.controls.set(key, { element: control, prop: schema[key], target: shape, shape, pointIndex });
+                }
+            }
+        }
+
+        // Handle In (if exists)
+        if (hasHandleIn) {
+            const handleInLabel = document.createElement('div');
+            handleInLabel.className = 'selected-point-sublabel';
+            handleInLabel.textContent = 'Handle In';
+            content.appendChild(handleInLabel);
+
+            for (const key of ['handleInX', 'handleInY']) {
+                const value = this.getValue(key, schema[key], shape);
+                const control = this.renderControl(key, schema[key], value, shape);
+                if (control) {
+                    content.appendChild(control);
+                    this.controls.set(key, { element: control, prop: schema[key], target: shape, shape, pointIndex });
+                }
+            }
+        }
+
+        // Handle Out (if exists)
+        if (hasHandleOut) {
+            const handleOutLabel = document.createElement('div');
+            handleOutLabel.className = 'selected-point-sublabel';
+            handleOutLabel.textContent = 'Handle Out';
+            content.appendChild(handleOutLabel);
+
+            for (const key of ['handleOutX', 'handleOutY']) {
+                const value = this.getValue(key, schema[key], shape);
+                const control = this.renderControl(key, schema[key], value, shape);
+                if (control) {
+                    content.appendChild(control);
+                    this.controls.set(key, { element: control, prop: schema[key], target: shape, shape, pointIndex });
+                }
+            }
+        }
+
+        section.appendChild(content);
+        this.container.appendChild(section);
+    }
+
     getShapeSchema(shape) {
         // Check if shape class has its own properties defined
         if (shape.constructor.properties) {
@@ -403,6 +516,106 @@ class PropertiesPanel {
         }
         // Fall back to base properties
         return BaseShapeProperties;
+    }
+
+    /**
+     * Get schema for selected point properties.
+     * Returns properties for editing point coordinates and bezier handles.
+     * @param {Shape} shape - The shape containing the point
+     * @param {number} pointIndex - Index of the selected point
+     * @returns {Object} Property schema for the selected point
+     */
+    getSelectedPointSchema(shape, pointIndex) {
+        const point = shape.points[pointIndex];
+        if (!point) return {};
+
+        const schema = {
+            pointX: {
+                type: 'number',
+                label: 'X',
+                group: 'selectedPoint',
+                suffix: 'px',
+                get: () => Math.round(point.x),
+                set: (_, value) => {
+                    if (shape.type === 'polyline') {
+                        shape.movePoint(pointIndex, value, point.y);
+                    } else if (shape.type === 'path') {
+                        // For path, move point and handles together
+                        shape.movePoint(pointIndex, value, point.y);
+                    }
+                    this.canvas.selection?.updateHandles();
+                }
+            },
+            pointY: {
+                type: 'number',
+                label: 'Y',
+                group: 'selectedPoint',
+                suffix: 'px',
+                get: () => Math.round(point.y),
+                set: (_, value) => {
+                    if (shape.type === 'polyline') {
+                        shape.movePoint(pointIndex, point.x, value);
+                    } else if (shape.type === 'path') {
+                        shape.movePoint(pointIndex, point.x, value);
+                    }
+                    this.canvas.selection?.updateHandles();
+                }
+            }
+        };
+
+        // Add bezier handle properties for Path shapes
+        if (shape.type === 'path') {
+            if (point.handleIn) {
+                schema.handleInX = {
+                    type: 'number',
+                    label: 'In X',
+                    group: 'selectedPoint',
+                    suffix: 'px',
+                    get: () => Math.round(point.handleIn.x),
+                    set: (_, value) => {
+                        shape.moveHandle(pointIndex, 'in', value, point.handleIn.y, false);
+                        this.canvas.selection?.updateHandles();
+                    }
+                };
+                schema.handleInY = {
+                    type: 'number',
+                    label: 'In Y',
+                    group: 'selectedPoint',
+                    suffix: 'px',
+                    get: () => Math.round(point.handleIn.y),
+                    set: (_, value) => {
+                        shape.moveHandle(pointIndex, 'in', point.handleIn.x, value, false);
+                        this.canvas.selection?.updateHandles();
+                    }
+                };
+            }
+            if (point.handleOut) {
+                schema.handleOutX = {
+                    type: 'number',
+                    label: 'Out X',
+                    group: 'selectedPoint',
+                    suffix: 'px',
+                    get: () => Math.round(point.handleOut.x),
+                    set: (_, value) => {
+                        shape.moveHandle(pointIndex, 'out', value, point.handleOut.y, false);
+                        this.canvas.selection?.updateHandles();
+                    }
+                };
+                schema.handleOutY = {
+                    type: 'number',
+                    label: 'Out Y',
+                    group: 'selectedPoint',
+                    suffix: 'px',
+                    get: () => Math.round(point.handleOut.y),
+                    set: (_, value) => {
+                        shape.moveHandle(pointIndex, 'out', point.handleOut.x, value, false);
+                        this.canvas.selection?.updateHandles();
+                    }
+                };
+            }
+        }
+
+        return schema;
     }
 
     // Get properties common to all selected shapes with matching values

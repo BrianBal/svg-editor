@@ -28,7 +28,11 @@ class Selection {
     onSelectionChanged(shapes) {
         this.clear();
         if (!shapes || shapes.length === 0) {
+            const hadPointSelected = this.selectedPointIndex !== null;
             this.selectedPointIndex = null;
+            if (hadPointSelected) {
+                eventBus.emit('point:selected', { shape: null, pointIndex: null });
+            }
             return;
         }
 
@@ -322,7 +326,11 @@ class Selection {
 
     hideHandles() {
         this.clear();
+        const hadPointSelected = this.selectedPointIndex !== null;
         this.selectedPointIndex = null;
+        if (hadPointSelected) {
+            eventBus.emit('point:selected', { shape: null, pointIndex: null });
+        }
     }
 
     clear() {
@@ -330,10 +338,15 @@ class Selection {
     }
 
     selectPoint(index) {
+        const previousIndex = this.selectedPointIndex;
         this.selectedPointIndex = index;
         const shape = appState.getSelectedShape();
         if (shape) {
             this.showHandles(shape);
+        }
+        // Emit point selection event if changed
+        if (previousIndex !== index) {
+            eventBus.emit('point:selected', { shape, pointIndex: index });
         }
     }
 

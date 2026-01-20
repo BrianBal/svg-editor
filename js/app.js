@@ -34,6 +34,9 @@ class App {
         this.setupKeyboardShortcuts();
         this.setupFileManagement();
 
+        // Load most recently opened file, or start with empty document
+        await this.loadMostRecentFile();
+
         console.log('SVG Editor initialized');
     }
 
@@ -375,6 +378,18 @@ class App {
     // Backwards compatibility alias
     moveSelectedShape(dx, dy) {
         this.moveSelectedShapes(dx, dy);
+    }
+
+    async loadMostRecentFile() {
+        try {
+            const files = await fileDatabase.getFilesSorted('lastModified', 'desc');
+            if (files.length > 0) {
+                await this.fileManager.openFile(files[0].id);
+            }
+        } catch (error) {
+            console.error('Failed to load most recent file:', error);
+            // Continue with empty document on error
+        }
     }
 }
 

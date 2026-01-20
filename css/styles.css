@@ -547,6 +547,30 @@ html, body {
     margin-bottom: 0;
 }
 
+/* Selected Point Section */
+.selected-point-section {
+    background-color: rgba(74, 144, 217, 0.08);
+    border-left: 3px solid var(--accent-color);
+}
+
+.selected-point-section .section-header {
+    color: var(--accent-color);
+}
+
+.selected-point-sublabel {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.selected-point-sublabel:first-child {
+    margin-top: 0;
+}
+
 .property-row {
     display: flex;
     align-items: center;
