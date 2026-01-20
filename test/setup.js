@@ -26,6 +26,8 @@ const files = [
     { file: 'ClipboardManager.js', className: 'ClipboardManager' },
     { file: 'PenTool.js', className: 'PenTool' },
     { file: 'CommandPalette.js', className: 'CommandPalette' },
+    { file: 'Selection.js', className: 'Selection' },
+    { file: 'SVGTransform.js', className: 'SVGTransform' },
 ];
 
 // Load each file and extract the class into globalThis
