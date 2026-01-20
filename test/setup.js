@@ -9,6 +9,7 @@ const jsDir = join(__dirname, '..', 'js');
 // Files and their exported class names
 const files = [
     { file: 'EventBus.js', className: 'EventBus' },
+    { file: 'SVGTransform.js', className: 'SVGTransform' },
     { file: 'State.js', className: 'State' },
     { file: 'Gradient.js', className: 'Gradient' },
     { file: 'GradientManager.js', className: 'GradientManager' },

@@ -389,7 +389,8 @@ class SVGCanvas {
 
     handlePolylinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handleLinePointMove(shape, pos) {
@@ -399,14 +400,16 @@ class SVGCanvas {
 
     handlePathPointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handlePathHandleMove(shape, pos) {
         // Handle data format: "index-in" or "index-out"
         const [indexStr, handleType] = this.activeHandle.data.split('-');
         const pointIndex = parseInt(indexStr);
-        shape.moveHandle(pointIndex, handleType, pos.x, pos.y);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.moveHandle(pointIndex, handleType, local.x, local.y);
     }
 
     addShape(shape) {
