@@ -186,6 +186,128 @@ class FileManager {
             this.applyCommonAttributes(shape, text);
             this.canvas.addShape(shape);
         });
+
+        svgElement.querySelectorAll('path').forEach(pathEl => {
+            const d = pathEl.getAttribute('d');
+            if (!d) return;
+
+            const points = this.parsePathData(d);
+            if (points.length >= 2) {
+                const closed = d.toUpperCase().includes('Z');
+                const shape = new Path(points, closed);
+                this.applyCommonAttributes(shape, pathEl);
+                this.canvas.addShape(shape);
+            }
+        });
+    }
+
+    parsePathData(d) {
+        const points = [];
+        const commands = d.match(/[MLCQZmlcqz][^MLCQZmlcqz]*/gi) || [];
+
+        let currentX = 0, currentY = 0;
+
+        commands.forEach(cmd => {
+            const type = cmd[0];
+            const isRelative = type === type.toLowerCase();
+            const typeUpper = type.toUpperCase();
+            const nums = cmd.slice(1).trim().split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n));
+
+            switch (typeUpper) {
+                case 'M':
+                    if (isRelative) {
+                        currentX += nums[0];
+                        currentY += nums[1];
+                    } else {
+                        currentX = nums[0];
+                        currentY = nums[1];
+                    }
+                    points.push({ x: currentX, y: currentY, handleIn: null, handleOut: null });
+                    break;
+
+                case 'L':
+                    if (isRelative) {
+                        currentX += nums[0];
+                        currentY += nums[1];
+                    } else {
+                        currentX = nums[0];
+                        currentY = nums[1];
+                    }
+                    points.push({ x: currentX, y: currentY, handleIn: null, handleOut: null });
+                    break;
+
+                case 'C':
+                    if (nums.length >= 6) {
+                        let cp1x, cp1y, cp2x, cp2y, endX, endY;
+                        if (isRelative) {
+                            cp1x = currentX + nums[0];
+                            cp1y = currentY + nums[1];
+                            cp2x = currentX + nums[2];
+                            cp2y = currentY + nums[3];
+                            endX = currentX + nums[4];
+                            endY = currentY + nums[5];
+                        } else {
+                            cp1x = nums[0];
+                            cp1y = nums[1];
+                            cp2x = nums[2];
+                            cp2y = nums[3];
+                            endX = nums[4];
+                            endY = nums[5];
+                        }
+
+                        if (points.length > 0) {
+                            points[points.length - 1].handleOut = { x: cp1x, y: cp1y };
+                        }
+
+                        currentX = endX;
+                        currentY = endY;
+
+                        points.push({
+                            x: currentX,
+                            y: currentY,
+                            handleIn: { x: cp2x, y: cp2y },
+                            handleOut: null
+                        });
+                    }
+                    break;
+
+                case 'Q':
+                    if (nums.length >= 4) {
+                        let cpx, cpy, endX, endY;
+                        if (isRelative) {
+                            cpx = currentX + nums[0];
+                            cpy = currentY + nums[1];
+                            endX = currentX + nums[2];
+                            endY = currentY + nums[3];
+                        } else {
+                            cpx = nums[0];
+                            cpy = nums[1];
+                            endX = nums[2];
+                            endY = nums[3];
+                        }
+
+                        if (points.length > 0) {
+                            points[points.length - 1].handleOut = { x: cpx, y: cpy };
+                        }
+
+                        currentX = endX;
+                        currentY = endY;
+
+                        points.push({
+                            x: currentX,
+                            y: currentY,
+                            handleIn: { x: cpx, y: cpy },
+                            handleOut: null
+                        });
+                    }
+                    break;
+
+                case 'Z':
+                    break;
+            }
+        });
+
+        return points;
     }
 
     parsePointsString(pointsStr) {

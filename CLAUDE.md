@@ -86,12 +86,42 @@ Components communicate via events rather than direct references. Key events:
 - `shape:created`, `shape:deleted`, `shape:selected`, `shape:deselected`, `shape:updated`
 - `tool:changed`, `shapes:reordered`, `canvas:loaded`, `document:background`
 - `history:changed` - emitted when undo/redo stacks change
+- `selection:changed` - emitted when selection changes (array of selected shapes)
+
+### Multi-Select System
+
+The app supports selecting and manipulating multiple shapes simultaneously.
+
+#### Selection State
+
+- `appState.selectedShapeIds` - Array of selected shape IDs
+- `appState.selectedShapeId` - Backwards-compatible getter returning first selected ID
+- Methods: `selectShape(id)`, `addToSelection(id)`, `removeFromSelection(id)`, `toggleSelection(id)`, `selectRange(fromId, toId)`, `getSelectedShapes()`, `isSelected(id)`
+
+#### Selection Behavior
+
+- **Canvas**: Click to select, Shift+click to toggle in/out of selection
+- **Layers Panel**: Click to select, Shift+click for range selection, Ctrl/Cmd+click to toggle
+- **Properties Panel**: Shows only properties with identical values across all selected shapes
+
+#### Multi-Shape Operations
+
+- **Move**: Drag any selected shape to move all together (maintains relative positions)
+- **Resize**: Drag handles to resize proportionally based on combined bounding box
+- **Rotate**: Drag rotation handle to rotate all shapes around combined center
+- **Delete**: Delete/Backspace removes all selected shapes
+- **Arrow keys**: Move all selected shapes
+
+#### History Integration
+
+Multi-shape operations use `historyManager.beginMultiTransaction(type, targetIds)` and `endMultiTransaction()` to batch changes into a single undo/redo action.
 
 ### Shape Hierarchy
 
 Base class `Shape` (`js/Shape.js`) defines the interface for all shapes:
 - Each shape type extends `Shape` and implements: `createSVGElement()`, `updateElement()`, `getBounds()`, `clone()`
-- Shape types: `Rectangle`, `Ellipse`, `Line`, `Polyline`, `Star`, `TextShape`
+- Shape types: `Rectangle`, `Ellipse`, `Line`, `Polyline`, `Path`, `Star`, `TextShape`
+- `PointBasedShape` (`js/PointBasedShape.js`) is a shared base class for `Polyline` and `Path`
 - Shapes are stored in `appState.shapes[]` and rendered to `#shapes-layer` SVG group
 
 #### Shape Properties
@@ -111,14 +141,24 @@ Shape-specific properties:
 - `Star`: `points`, `innerRadius`, `outerRadius`
 - `TextShape`: `text`, `fontSize`, `fontFamily`
 - `Line`: `x1`, `y1`, `x2`, `y2`
-- `Polyline`: `points[]`
+- `Polyline`: `points[]` (array of `{x, y}`)
+- `Path`: `points[]` (array of `{x, y, handleIn, handleOut}`), `closed` (boolean)
 
 ### Tool System
 
 Tools handle canvas interactions and follow a common interface:
 - Methods: `onMouseDown(e, pos)`, `onMouseMove(e, pos)`, `onMouseUp(e, pos)`, `onDoubleClick(e, pos)`
 - `SVGCanvas` delegates mouse events to the active tool
-- Tools: `SelectTool`, `RectangleTool`, `EllipseTool`, `LineTool`, `PolylineTool`, `StarTool`, `TextTool`
+- Tools: `SelectTool`, `RectangleTool`, `EllipseTool`, `LineTool`, `PolylineTool`, `PenTool`, `StarTool`, `TextTool`
+
+#### PenTool (Bezier Paths)
+
+The `PenTool` creates bezier curve paths with control handles:
+- **Click** to add corner points (no handles)
+- **Click + drag** to add curve points with symmetric handles
+- **Click near first point** (within 15px) to close the path
+- **Double-click** or **Escape** to finish an open path
+- Keyboard shortcut: `B`
 
 ### DOM Structure
 
@@ -134,8 +174,82 @@ Tools handle canvas interactions and follow a common interface:
 - `PropertiesPanel` - Schema-driven property editor (see below)
 - `SVGLoader` - File import/export functionality
 - `HistoryManager` - Undo/redo system exposed as `window.historyManager`
+- `ClipboardManager` - Copy/cut/paste using system clipboard, exposed as `window.clipboardManager`
+- `CommandPalette` - Searchable command palette for quick access to all commands
 - `Gradient` - Gradient data model for linear/radial gradients
 - `GradientManager` - Manages SVG `<defs>` element and gradient elements
+
+### Clipboard System
+
+The `ClipboardManager` (`js/ClipboardManager.js`) handles copy/cut/paste operations using the system clipboard with SVG text format.
+
+#### Keyboard Shortcuts
+
+- **Ctrl+C / Cmd+C** - Copy selected shapes as SVG
+- **Ctrl+X / Cmd+X** - Cut (copy then delete)
+- **Ctrl+V / Cmd+V** - Paste SVG from clipboard
+
+#### How It Works
+
+1. **Copy**: Generates SVG containing only selected shapes and their gradients via `generateSVGFragment()`, writes to system clipboard with `navigator.clipboard.writeText()`
+
+2. **Paste**: Reads SVG text from clipboard, parses shapes using same patterns as `FileManager.parseShapes()`, offsets positions to avoid overlap, adds to canvas, selects pasted shapes
+
+3. **Offset Stacking**: Consecutive pastes offset by 20px increments (20, 40, 60...). Counter resets on new copy.
+
+#### Features
+
+- Copies as valid SVG text (can paste into text editors)
+- Pastes SVG from any source (external editors, other applications)
+- Supports multiple shapes with gradients
+- Preserves stroke, fill, rotation, and other attributes
+- Integrates with undo/redo (shape creation auto-tracked by HistoryManager)
+
+### Command Palette
+
+The `CommandPalette` (`js/CommandPalette.js`) provides a searchable command interface for quick access to all editor features.
+
+#### Keyboard Shortcut
+
+- **Ctrl+K / Cmd+K** - Open command palette
+
+#### Features
+
+- **Fuzzy search**: Type to filter commands, matches prioritized by position in label
+- **Keyboard navigation**: Arrow keys to navigate, Enter to execute, Escape to close
+- **Context-aware**: Commands only appear when available (e.g., alignment requires 2+ shapes selected)
+- **Shortcut display**: Shows keyboard shortcut next to each command
+
+#### Available Commands (32 total)
+
+- **Tools (8)**: Select, Rectangle, Ellipse, Line, Polyline, Pen, Star, Text
+- **Alignment (6)**: Align Left, Center Horizontal, Right, Top, Middle Vertical, Bottom (requires 2+ selected)
+- **Distribute (2)**: Horizontal, Vertical (requires 3+ selected)
+- **Shape Operations (6)**: Delete, Duplicate, Bring Forward, Send Backward, Bring to Front, Send to Back
+- **Flip (2)**: Horizontal, Vertical
+- **File (2)**: Save, Export SVG
+- **View (3)**: Zoom In, Zoom Out, Reset Zoom
+- **Edit (3)**: Undo, Redo, Deselect All
+
+#### Adding New Commands
+
+Commands are registered in `CommandPalette.registerCommands()`:
+```javascript
+this.commands.push({
+    id: 'category:action',
+    label: 'Human Readable Label',
+    shortcut: 'Ctrl+X',  // or null
+    action: () => { /* execute command */ },
+    isAvailable: () => true  // or condition function
+});
+```
+
+#### Alignment Helper Functions
+
+The CommandPalette includes helper functions for alignment operations:
+- `alignShapes(direction)` - Aligns selected shapes (left, right, center-h, top, bottom, middle-v)
+- `distributeShapes(direction)` - Distributes shapes with equal spacing (horizontal, vertical)
+- `reorderShapes(action)` - Changes z-order (bring-forward, send-backward, bring-to-front, send-to-back)
 
 ### Gradient System
 

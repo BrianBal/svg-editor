@@ -9,6 +9,7 @@ class App {
         const tools = {
             select: new SelectTool(this.canvas),
             polyline: new PolylineTool(this.canvas),
+            pen: new PenTool(this.canvas),
             rectangle: new RectangleTool(this.canvas),
             ellipse: new EllipseTool(this.canvas),
             line: new LineTool(this.canvas),
@@ -26,11 +27,15 @@ class App {
         await fileDatabase.init();
         this.fileManager = new FileManager(this.canvas);
         this.fileBrowser = new FileBrowserDialog(this.fileManager);
+        this.commandPalette = new CommandPalette();
 
         this.zoom = 100;
         this.setupZoomControls();
         this.setupKeyboardShortcuts();
         this.setupFileManagement();
+
+        // Load most recently opened file, or start with empty document
+        await this.loadMostRecentFile();
 
         console.log('SVG Editor initialized');
     }
@@ -185,9 +190,12 @@ class App {
             switch (e.key) {
                 case 'Delete':
                 case 'Backspace':
-                    const shape = appState.getSelectedShape();
-                    if (shape) {
-                        this.canvas.removeShape(shape);
+                    const selectedShapes = appState.getSelectedShapes();
+                    if (selectedShapes.length > 0) {
+                        // Delete all selected shapes
+                        selectedShapes.forEach(shape => {
+                            this.canvas.removeShape(shape);
+                        });
                         appState.deselectAll();
                     }
                     break;
@@ -209,9 +217,36 @@ class App {
                     }
                     break;
 
+                case 'k':
+                case 'K':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        this.commandPalette.toggle();
+                    }
+                    break;
+
+                case 'c':
+                case 'C':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.copy();
+                    }
+                    break;
+
+                case 'x':
+                case 'X':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.cut();
+                    }
+                    break;
+
                 case 'v':
                 case 'V':
-                    if (!e.ctrlKey && !e.metaKey) {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        clipboardManager.paste();
+                    } else {
                         appState.setTool('select');
                     }
                     break;
@@ -261,6 +296,13 @@ class App {
                     }
                     break;
 
+                case 'b':
+                case 'B':
+                    if (!e.ctrlKey && !e.metaKey) {
+                        appState.setTool('pen');
+                    }
+                    break;
+
                 case 'ArrowUp':
                     this.moveSelectedShape(0, -moveAmount);
                     e.preventDefault();
@@ -306,18 +348,48 @@ class App {
         });
     }
 
-    moveSelectedShape(dx, dy) {
-        const shape = appState.getSelectedShape();
-        if (!shape) return;
+    moveSelectedShapes(dx, dy) {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length === 0) return;
+
+        const ids = shapes.map(s => s.id);
 
         if (window.historyManager) {
-            historyManager.beginTransaction('move', shape.id);
+            if (ids.length === 1) {
+                historyManager.beginTransaction('move', ids[0]);
+            } else {
+                historyManager.beginMultiTransaction('move', ids);
+            }
         }
-        shape.move(dx, dy);
+
+        shapes.forEach(shape => shape.move(dx, dy));
+
         if (window.historyManager) {
-            historyManager.endTransaction();
+            if (ids.length === 1) {
+                historyManager.endTransaction();
+            } else {
+                historyManager.endMultiTransaction();
+            }
         }
+
         this.canvas.selection.updateHandles();
+    }
+
+    // Backwards compatibility alias
+    moveSelectedShape(dx, dy) {
+        this.moveSelectedShapes(dx, dy);
+    }
+
+    async loadMostRecentFile() {
+        try {
+            const files = await fileDatabase.getFilesSorted('lastModified', 'desc');
+            if (files.length > 0) {
+                await this.fileManager.openFile(files[0].id);
+            }
+        } catch (error) {
+            console.error('Failed to load most recent file:', error);
+            // Continue with empty document on error
+        }
     }
 }
 

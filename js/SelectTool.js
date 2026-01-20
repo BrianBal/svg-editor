@@ -3,8 +3,8 @@ class SelectTool {
         this.canvas = canvas;
         this.isDragging = false;
         this.dragStart = { x: 0, y: 0 };
-        this.shapeBoundsStart = null;
-        this.originalPoints = null;
+        // Map of shape id -> original state for multi-shape dragging
+        this.originalStates = null;
     }
 
     onMouseDown(e, pos) {
@@ -12,84 +12,163 @@ class SelectTool {
 
         if (target.dataset.shapeId) {
             const shapeId = target.dataset.shapeId;
-            appState.selectShape(shapeId);
-            this.isDragging = true;
 
-            if (window.historyManager) {
-                historyManager.beginTransaction('move', shapeId);
+            if (e.shiftKey) {
+                // Shift+click: toggle shape in selection
+                appState.toggleSelection(shapeId);
+            } else if (!appState.isSelected(shapeId)) {
+                // Normal click on unselected shape: replace selection
+                appState.selectShape(shapeId);
             }
-            this.dragStart = pos;
+            // If clicking on already selected shape without shift, keep selection for dragging
 
-            const shape = appState.getShapeById(shapeId);
-
-            // Store original position for dragging
-            if (shape.type === 'polyline') {
-                this.originalPoints = shape.points.map(p => ({ x: p.x, y: p.y }));
-            } else if (shape.type === 'line') {
-                this.originalPoints = [
-                    { x: shape.x1, y: shape.y1 },
-                    { x: shape.x2, y: shape.y2 }
-                ];
-            } else {
-                // For rectangle, ellipse, star, text - store bounds
-                this.shapeBoundsStart = shape.getBounds();
+            // Start drag if we have any selected shapes
+            if (appState.selectedShapeIds.length > 0) {
+                this.startDrag(pos);
             }
         }
     }
 
-    onMouseMove(e, pos) {
-        if (!this.isDragging) return;
+    startDrag(pos) {
+        this.isDragging = true;
+        this.dragStart = pos;
 
-        const shape = appState.getShapeById(appState.selectedShapeId);
-        if (!shape) return;
+        const selectedShapes = appState.getSelectedShapes();
+        const selectedIds = appState.selectedShapeIds;
+
+        // Begin multi-transaction for undo/redo
+        if (window.historyManager && selectedIds.length > 0) {
+            if (selectedIds.length === 1) {
+                historyManager.beginTransaction('move', selectedIds[0]);
+            } else {
+                historyManager.beginMultiTransaction('move', selectedIds);
+            }
+        }
+
+        // Store original state for all selected shapes
+        this.originalStates = new Map();
+        for (const shape of selectedShapes) {
+            this.originalStates.set(shape.id, this.captureShapeState(shape));
+        }
+    }
+
+    captureShapeState(shape) {
+        const state = { type: shape.type };
+
+        switch (shape.type) {
+            case 'polyline':
+                state.points = shape.points.map(p => ({ x: p.x, y: p.y }));
+                break;
+            case 'path':
+                state.points = shape.points.map(p => ({
+                    x: p.x,
+                    y: p.y,
+                    handleIn: p.handleIn ? { x: p.handleIn.x, y: p.handleIn.y } : null,
+                    handleOut: p.handleOut ? { x: p.handleOut.x, y: p.handleOut.y } : null
+                }));
+                break;
+            case 'line':
+                state.x1 = shape.x1;
+                state.y1 = shape.y1;
+                state.x2 = shape.x2;
+                state.y2 = shape.y2;
+                break;
+            case 'rectangle':
+            case 'text':
+                state.x = shape.x;
+                state.y = shape.y;
+                if (shape.type === 'text') {
+                    state.fontSize = shape.fontSize;
+                }
+                break;
+            case 'ellipse':
+                state.cx = shape.cx;
+                state.cy = shape.cy;
+                state.rx = shape.rx;
+                state.ry = shape.ry;
+                break;
+            case 'star':
+                state.cx = shape.cx;
+                state.cy = shape.cy;
+                state.outerRadius = shape.outerRadius;
+                break;
+        }
+
+        return state;
+    }
+
+    onMouseMove(e, pos) {
+        if (!this.isDragging || !this.originalStates) return;
 
         const dx = pos.x - this.dragStart.x;
         const dy = pos.y - this.dragStart.y;
 
-        if (shape.type === 'polyline' && this.originalPoints) {
-            shape.points = this.originalPoints.map(p => ({
-                x: p.x + dx,
-                y: p.y + dy
-            }));
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
-        } else if (shape.type === 'line' && this.originalPoints) {
-            shape.x1 = this.originalPoints[0].x + dx;
-            shape.y1 = this.originalPoints[0].y + dy;
-            shape.x2 = this.originalPoints[1].x + dx;
-            shape.y2 = this.originalPoints[1].y + dy;
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
-        } else if (shape.type === 'rectangle' && this.shapeBoundsStart) {
-            shape.x = this.shapeBoundsStart.x + dx;
-            shape.y = this.shapeBoundsStart.y + dy;
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
-        } else if (shape.type === 'ellipse' && this.shapeBoundsStart) {
-            shape.cx = this.shapeBoundsStart.x + shape.rx + dx;
-            shape.cy = this.shapeBoundsStart.y + shape.ry + dy;
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
-        } else if (shape.type === 'star' && this.shapeBoundsStart) {
-            shape.cx = this.shapeBoundsStart.x + shape.outerRadius + dx;
-            shape.cy = this.shapeBoundsStart.y + shape.outerRadius + dy;
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
-        } else if (shape.type === 'text' && this.shapeBoundsStart) {
-            shape.x = this.shapeBoundsStart.x + dx;
-            shape.y = this.shapeBoundsStart.y + shape.fontSize + dy;
-            shape.updateElement();
-            eventBus.emit('shape:updated', shape);
+        // Move all selected shapes
+        for (const shape of appState.getSelectedShapes()) {
+            const original = this.originalStates.get(shape.id);
+            if (!original) continue;
+
+            this.moveShapeByDelta(shape, original, dx, dy);
         }
+
+        // Update handles for all selected shapes
+        eventBus.emit('selection:changed', appState.getSelectedShapes());
+    }
+
+    moveShapeByDelta(shape, original, dx, dy) {
+        switch (original.type) {
+            case 'polyline':
+                shape.points = original.points.map(p => ({
+                    x: p.x + dx,
+                    y: p.y + dy
+                }));
+                break;
+            case 'path':
+                shape.points = original.points.map(p => ({
+                    x: p.x + dx,
+                    y: p.y + dy,
+                    handleIn: p.handleIn ? { x: p.handleIn.x + dx, y: p.handleIn.y + dy } : null,
+                    handleOut: p.handleOut ? { x: p.handleOut.x + dx, y: p.handleOut.y + dy } : null
+                }));
+                break;
+            case 'line':
+                shape.x1 = original.x1 + dx;
+                shape.y1 = original.y1 + dy;
+                shape.x2 = original.x2 + dx;
+                shape.y2 = original.y2 + dy;
+                break;
+            case 'rectangle':
+                shape.x = original.x + dx;
+                shape.y = original.y + dy;
+                break;
+            case 'text':
+                shape.x = original.x + dx;
+                shape.y = original.y + dy;
+                break;
+            case 'ellipse':
+                shape.cx = original.cx + dx;
+                shape.cy = original.cy + dy;
+                break;
+            case 'star':
+                shape.cx = original.cx + dx;
+                shape.cy = original.cy + dy;
+                break;
+        }
+
+        shape.updateElement();
     }
 
     onMouseUp(e, pos) {
         if (window.historyManager) {
-            historyManager.endTransaction();
+            const selectedIds = appState.selectedShapeIds;
+            if (selectedIds.length === 1) {
+                historyManager.endTransaction();
+            } else if (selectedIds.length > 1) {
+                historyManager.endMultiTransaction();
+            }
         }
         this.isDragging = false;
-        this.originalPoints = null;
-        this.shapeBoundsStart = null;
+        this.originalStates = null;
     }
 
     onDoubleClick(e, pos) {

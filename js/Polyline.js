@@ -1,4 +1,4 @@
-class Polyline extends Shape {
+class Polyline extends PointBasedShape {
     static get properties() {
         const baseProps = Shape.properties;
         return {
@@ -53,8 +53,7 @@ class Polyline extends Shape {
     }
 
     constructor(points = []) {
-        super('polyline');
-        this.points = points;
+        super('polyline', points);
     }
 
     createSVGElement() {
@@ -95,40 +94,6 @@ class Polyline extends Shape {
         }
     }
 
-    removePoint(index) {
-        if (index >= 0 && index < this.points.length && this.points.length > 2) {
-            this.points.splice(index, 1);
-            this.updateElement();
-            eventBus.emit('shape:updated', this);
-            return true;
-        }
-        return false;
-    }
-
-    removeLastPoint() {
-        if (this.points.length > 2) {
-            this.points.pop();
-            this.updateElement();
-            eventBus.emit('shape:updated', this);
-            return true;
-        }
-        return false;
-    }
-
-    addPointBetween(index) {
-        if (index >= 0 && index < this.points.length - 1) {
-            const p1 = this.points[index];
-            const p2 = this.points[index + 1];
-            const midpoint = {
-                x: (p1.x + p2.x) / 2,
-                y: (p1.y + p2.y) / 2
-            };
-            this.points.splice(index + 1, 0, midpoint);
-            this.updateElement();
-            eventBus.emit('shape:updated', this);
-        }
-    }
-
     move(dx, dy) {
         this.points.forEach(point => {
             point.x += dx;
@@ -139,19 +104,7 @@ class Polyline extends Shape {
     }
 
     getBounds() {
-        if (this.points.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
-
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-
-        this.points.forEach(p => {
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x);
-            maxY = Math.max(maxY, p.y);
-        });
-
-        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        return this.getBoundsFromPoints(p => [p]);
     }
 
     clone(offset = 10) {

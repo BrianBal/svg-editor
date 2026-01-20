@@ -9,17 +9,25 @@ const jsDir = join(__dirname, '..', 'js');
 // Files and their exported class names
 const files = [
     { file: 'EventBus.js', className: 'EventBus' },
+    { file: 'SVGTransform.js', className: 'SVGTransform' },
     { file: 'State.js', className: 'State' },
     { file: 'Gradient.js', className: 'Gradient' },
     { file: 'GradientManager.js', className: 'GradientManager' },
     { file: 'Shape.js', className: 'Shape' },
+    { file: 'PointBasedShape.js', className: 'PointBasedShape' },
     { file: 'Rectangle.js', className: 'Rectangle' },
     { file: 'Ellipse.js', className: 'Ellipse' },
     { file: 'Star.js', className: 'Star' },
     { file: 'Polyline.js', className: 'Polyline' },
+    { file: 'Path.js', className: 'Path' },
     { file: 'Line.js', className: 'Line' },
     { file: 'TextShape.js', className: 'TextShape' },
     { file: 'HistoryManager.js', className: 'HistoryManager' },
+    { file: 'ClipboardManager.js', className: 'ClipboardManager' },
+    { file: 'PenTool.js', className: 'PenTool' },
+    { file: 'CommandPalette.js', className: 'CommandPalette' },
+    { file: 'Selection.js', className: 'Selection' },
+    { file: 'SVGTransform.js', className: 'SVGTransform' },
 ];
 
 // Load each file and extract the class into globalThis
@@ -67,5 +75,11 @@ beforeEach(() => {
     globalThis.historyManager = new globalThis.HistoryManager();
     if (typeof window !== 'undefined') {
         window.historyManager = globalThis.historyManager;
+    }
+
+    // Fresh ClipboardManager for each test
+    globalThis.clipboardManager = new globalThis.ClipboardManager();
+    if (typeof window !== 'undefined') {
+        window.clipboardManager = globalThis.clipboardManager;
     }
 });

@@ -12,6 +12,10 @@ class SVGCanvas {
         this.activeTool = null;
         this.tools = {};
 
+        // Multi-shape handle dragging state
+        this.originalCombinedBounds = null;
+        this.originalShapeStates = null;
+
         this.createBackgroundRect();
         this.initGradientManager();
         this.setupEventListeners();
@@ -89,11 +93,29 @@ class SVGCanvas {
             this.isDragging = true;
             this.dragStart = pos;
 
-            if (window.historyManager && appState.selectedShapeId) {
-                historyManager.beginTransaction(
-                    this.activeHandle.type === 'resize' ? 'resize' : 'move',
-                    appState.selectedShapeId
-                );
+            const selectedIds = appState.selectedShapeIds;
+            const selectedShapes = appState.getSelectedShapes();
+
+            // Start transaction for all selected shapes
+            if (window.historyManager && selectedIds.length > 0) {
+                const transactionType = this.activeHandle.type === 'resize' ? 'resize' : 'move';
+                if (selectedIds.length === 1) {
+                    historyManager.beginTransaction(transactionType, selectedIds[0]);
+                } else {
+                    historyManager.beginMultiTransaction(transactionType, selectedIds);
+                }
+            }
+
+            // Store original states for all selected shapes (for multi-shape resize/rotate)
+            if (this.activeHandle.type === 'resize' || this.activeHandle.type === 'rotate') {
+                this.originalCombinedBounds = this.selection.getCombinedBounds(selectedShapes);
+                this.originalShapeStates = new Map();
+                for (const shape of selectedShapes) {
+                    this.originalShapeStates.set(shape.id, {
+                        bounds: shape.getBounds(),
+                        rotation: shape.rotation || 0
+                    });
+                }
             }
 
             if (this.activeHandle.type === 'point') {
@@ -125,11 +147,18 @@ class SVGCanvas {
         const pos = this.getMousePosition(e);
 
         if (window.historyManager && this.activeHandle) {
-            historyManager.endTransaction();
+            const selectedIds = appState.selectedShapeIds;
+            if (selectedIds.length === 1) {
+                historyManager.endTransaction();
+            } else if (selectedIds.length > 1) {
+                historyManager.endMultiTransaction();
+            }
         }
 
         this.isDragging = false;
         this.activeHandle = null;
+        this.originalCombinedBounds = null;
+        this.originalShapeStates = null;
 
         if (this.activeTool && this.activeTool.onMouseUp) {
             this.activeTool.onMouseUp(e, pos);
@@ -145,19 +174,35 @@ class SVGCanvas {
     }
 
     handleHandleDrag(pos) {
-        const shape = appState.getShapeById(appState.selectedShapeId);
-        if (!shape) return;
+        const selectedShapes = appState.getSelectedShapes();
+        if (selectedShapes.length === 0) return;
+
+        const isMultiSelect = selectedShapes.length > 1;
 
         if (this.activeHandle.type === 'rotate') {
-            this.handleRotation(shape, pos);
+            if (isMultiSelect) {
+                this.handleMultiShapeRotation(pos);
+            } else {
+                this.handleRotation(selectedShapes[0], pos);
+            }
         } else if (this.activeHandle.type === 'resize') {
-            this.handleBoundsResize(shape, pos);
+            if (isMultiSelect) {
+                this.handleMultiShapeResize(pos);
+            } else {
+                this.handleBoundsResize(selectedShapes[0], pos);
+            }
         } else if (this.activeHandle.type === 'point') {
+            // Point handles only work with single selection
+            const shape = selectedShapes[0];
             if (shape.type === 'polyline') {
                 this.handlePolylinePointMove(shape, pos);
             } else if (shape.type === 'line') {
                 this.handleLinePointMove(shape, pos);
             }
+        } else if (this.activeHandle.type === 'path-point') {
+            this.handlePathPointMove(selectedShapes[0], pos);
+        } else if (this.activeHandle.type === 'path-handle-in' || this.activeHandle.type === 'path-handle-out') {
+            this.handlePathHandleMove(selectedShapes[0], pos);
         }
     }
 
@@ -230,14 +275,141 @@ class SVGCanvas {
         }
     }
 
+    handleMultiShapeResize(pos) {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length === 0 || !this.originalCombinedBounds || !this.originalShapeStates) return;
+
+        const originalBounds = this.originalCombinedBounds;
+        const handlePos = this.activeHandle.data;
+
+        // Calculate new combined bounds based on handle position
+        let newX = originalBounds.x;
+        let newY = originalBounds.y;
+        let newWidth = originalBounds.width;
+        let newHeight = originalBounds.height;
+
+        switch (handlePos) {
+            case 'se':
+                newWidth = pos.x - originalBounds.x;
+                newHeight = pos.y - originalBounds.y;
+                break;
+            case 'nw':
+                newWidth = (originalBounds.x + originalBounds.width) - pos.x;
+                newHeight = (originalBounds.y + originalBounds.height) - pos.y;
+                newX = pos.x;
+                newY = pos.y;
+                break;
+            case 'ne':
+                newWidth = pos.x - originalBounds.x;
+                newHeight = (originalBounds.y + originalBounds.height) - pos.y;
+                newY = pos.y;
+                break;
+            case 'sw':
+                newWidth = (originalBounds.x + originalBounds.width) - pos.x;
+                newHeight = pos.y - originalBounds.y;
+                newX = pos.x;
+                break;
+            case 'n':
+                newHeight = (originalBounds.y + originalBounds.height) - pos.y;
+                newY = pos.y;
+                break;
+            case 's':
+                newHeight = pos.y - originalBounds.y;
+                break;
+            case 'e':
+                newWidth = pos.x - originalBounds.x;
+                break;
+            case 'w':
+                newWidth = (originalBounds.x + originalBounds.width) - pos.x;
+                newX = pos.x;
+                break;
+        }
+
+        if (newWidth <= 0 || newHeight <= 0) return;
+
+        // Calculate scale factors
+        const scaleX = newWidth / originalBounds.width;
+        const scaleY = newHeight / originalBounds.height;
+
+        // Apply proportional resize to each shape
+        for (const shape of shapes) {
+            const original = this.originalShapeStates.get(shape.id);
+            if (!original || !original.bounds) continue;
+
+            // Calculate new position and size relative to combined bounds
+            const relX = (original.bounds.x - originalBounds.x) / originalBounds.width;
+            const relY = (original.bounds.y - originalBounds.y) / originalBounds.height;
+            const relW = original.bounds.width / originalBounds.width;
+            const relH = original.bounds.height / originalBounds.height;
+
+            const shapeNewX = newX + relX * newWidth;
+            const shapeNewY = newY + relY * newHeight;
+            const shapeNewWidth = relW * newWidth;
+            const shapeNewHeight = relH * newHeight;
+
+            if (shape.resize && shapeNewWidth > 0 && shapeNewHeight > 0) {
+                shape.resize(shapeNewX, shapeNewY, shapeNewWidth, shapeNewHeight);
+            }
+        }
+
+        this.selection.updateHandles();
+    }
+
+    handleMultiShapeRotation(pos) {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length === 0 || !this.originalCombinedBounds || !this.originalShapeStates) return;
+
+        const bounds = this.originalCombinedBounds;
+        const cx = bounds.x + bounds.width / 2;
+        const cy = bounds.y + bounds.height / 2;
+
+        // Calculate angle from center to mouse position
+        let angle = Math.atan2(pos.y - cy, pos.x - cx) * (180 / Math.PI);
+
+        // Offset by 90° since handle is at top (0° = up)
+        angle = (angle + 90 + 360) % 360;
+
+        // Snap to 15° increments if Shift held
+        if (this.shiftKey) {
+            angle = Math.round(angle / 15) * 15;
+        }
+
+        // Apply rotation delta to each shape
+        for (const shape of shapes) {
+            const original = this.originalShapeStates.get(shape.id);
+            if (!original) continue;
+
+            // For simplicity, apply the same rotation to each shape
+            // (In a more sophisticated implementation, we could rotate shapes around combined center)
+            shape.setRotation(angle);
+        }
+
+        this.selection.updateHandles();
+    }
+
     handlePolylinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handleLinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
         shape.movePoint(pointIndex, pos.x, pos.y);
+    }
+
+    handlePathPointMove(shape, pos) {
+        const pointIndex = parseInt(this.activeHandle.data);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.movePoint(pointIndex, local.x, local.y);
+    }
+
+    handlePathHandleMove(shape, pos) {
+        // Handle data format: "index-in" or "index-out"
+        const [indexStr, handleType] = this.activeHandle.data.split('-');
+        const pointIndex = parseInt(indexStr);
+        const local = SVGTransform.canvasToLocal(shape.element, pos.x, pos.y, this.svg);
+        shape.moveHandle(pointIndex, handleType, local.x, local.y);
     }
 
     addShape(shape) {

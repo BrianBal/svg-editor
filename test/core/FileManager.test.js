@@ -212,5 +212,79 @@ describe('FileManager', () => {
             expect(shape.fontSize).toBe(48);
             expect(shape.fontFamily).toBe('Georgia');
         });
+
+        it('parses path elements with corner points', () => {
+            const svgWithPath = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 10 10 L 100 10 L 100 100 L 10 100 Z" stroke="#000000" fill="none"/>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithPath, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            expect(mockCanvas.addShape).toHaveBeenCalledTimes(1);
+            const shape = mockCanvas.addShape.mock.calls[0][0];
+            expect(shape.type).toBe('path');
+            expect(shape.points.length).toBe(4);
+            expect(shape.closed).toBe(true);
+            expect(shape.points[0]).toEqual({ x: 10, y: 10, handleIn: null, handleOut: null });
+            expect(shape.points[1]).toEqual({ x: 100, y: 10, handleIn: null, handleOut: null });
+        });
+
+        it('parses path elements with cubic bezier curves', () => {
+            const svgWithPath = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 10 50 C 30 10 70 10 90 50" stroke="#000000" fill="none"/>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithPath, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            expect(mockCanvas.addShape).toHaveBeenCalledTimes(1);
+            const shape = mockCanvas.addShape.mock.calls[0][0];
+            expect(shape.type).toBe('path');
+            expect(shape.points.length).toBe(2);
+            expect(shape.closed).toBe(false);
+            // First point should have handleOut
+            expect(shape.points[0].handleOut).toEqual({ x: 30, y: 10 });
+            // Second point should have handleIn
+            expect(shape.points[1].handleIn).toEqual({ x: 70, y: 10 });
+        });
+
+        it('parses open path elements (without Z)', () => {
+            const svgWithPath = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 10 10 L 100 100" stroke="#000000" fill="none"/>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithPath, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            const shape = mockCanvas.addShape.mock.calls[0][0];
+            expect(shape.closed).toBe(false);
+        });
+
+        it('applies stroke and fill attributes to path', () => {
+            const svgWithPath = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 10 10 L 100 100 L 50 150" stroke="#ff0000" stroke-width="3" fill="#00ff00"/>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithPath, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            const shape = mockCanvas.addShape.mock.calls[0][0];
+            expect(shape.stroke).toBe('#ff0000');
+            expect(shape.strokeWidth).toBe(3);
+            expect(shape.fill).toBe('#00ff00');
+        });
     });
 });

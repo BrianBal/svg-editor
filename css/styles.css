@@ -547,6 +547,30 @@ html, body {
     margin-bottom: 0;
 }
 
+/* Selected Point Section */
+.selected-point-section {
+    background-color: rgba(74, 144, 217, 0.08);
+    border-left: 3px solid var(--accent-color);
+}
+
+.selected-point-section .section-header {
+    color: var(--accent-color);
+}
+
+.selected-point-sublabel {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.selected-point-sublabel:first-child {
+    margin-top: 0;
+}
+
 .property-row {
     display: flex;
     align-items: center;
@@ -1268,4 +1292,113 @@ html, body {
     border-radius: 50%;
     border: none;
     cursor: pointer;
+}
+
+/* ===========================================
+   Command Palette
+   =========================================== */
+
+.command-palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    padding-top: 80px;
+    z-index: 1000;
+}
+
+.command-palette-overlay.open {
+    display: flex;
+}
+
+.command-palette {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 500px;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.command-palette-input-wrapper {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.command-palette-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+}
+
+.command-palette-input:focus {
+    border-color: var(--accent-color);
+}
+
+.command-palette-input::placeholder {
+    color: var(--text-muted);
+}
+
+.command-palette-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.command-palette-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.command-palette-item:hover {
+    background: var(--bg-hover);
+}
+
+.command-palette-item.selected {
+    background: var(--bg-selected);
+}
+
+.command-palette-label {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.command-palette-label mark {
+    background: var(--accent-color);
+    color: white;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+.command-palette-shortcut {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: monospace;
+    background: var(--bg-input);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+}
+
+.command-palette-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
 }

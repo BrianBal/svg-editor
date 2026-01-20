@@ -3,6 +3,7 @@ class LayersPanel {
         this.canvas = canvas;
         this.listElement = document.getElementById('layers-list');
         this.draggedItem = null;
+        this.lastClickedId = null;  // For range selection
         this.setupEventListeners();
     }
 
@@ -10,8 +11,17 @@ class LayersPanel {
         eventBus.on('shape:created', () => this.render());
         eventBus.on('shape:deleted', () => this.render());
         eventBus.on('shape:updated', () => this.render());
-        eventBus.on('shape:selected', (shape) => this.highlightLayer(shape?.id));
-        eventBus.on('shape:deselected', () => this.highlightLayer(null));
+        // Listen to new multi-select event
+        eventBus.on('selection:changed', (shapes) => {
+            this.highlightLayers(shapes.map(s => s.id));
+        });
+        // Keep backwards compatibility
+        eventBus.on('shape:selected', (shape) => {
+            if (appState.selectedShapeIds.length === 1) {
+                this.highlightLayers([shape?.id].filter(Boolean));
+            }
+        });
+        eventBus.on('shape:deselected', () => this.highlightLayers([]));
         eventBus.on('canvas:loaded', () => this.render());
         eventBus.on('shapes:reordered', () => this.render());
 
@@ -34,11 +44,23 @@ class LayersPanel {
                 return;
             }
 
-            // Handle layer selection
+            // Handle layer selection with multi-select support
             const layerItem = e.target.closest('.layer-item');
             if (layerItem) {
                 const shapeId = layerItem.dataset.shapeId;
-                appState.selectShape(shapeId);
+
+                if (e.shiftKey && this.lastClickedId) {
+                    // Shift+click: range selection
+                    appState.selectRange(this.lastClickedId, shapeId);
+                } else if (e.ctrlKey || e.metaKey) {
+                    // Ctrl/Cmd+click: toggle individual selection
+                    appState.toggleSelection(shapeId);
+                } else {
+                    // Normal click: single selection
+                    appState.selectShape(shapeId);
+                }
+
+                this.lastClickedId = shapeId;
             }
         });
 
@@ -136,7 +158,7 @@ class LayersPanel {
                 </div>
             `;
 
-            if (shape.id === appState.selectedShapeId) {
+            if (appState.isSelected(shape.id)) {
                 li.classList.add('selected');
             }
 
@@ -249,9 +271,16 @@ class LayersPanel {
         return `${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)} ${num}`;
     }
 
-    highlightLayer(shapeId) {
+    // Highlight multiple layers
+    highlightLayers(shapeIds) {
+        const idSet = new Set(shapeIds);
         this.listElement.querySelectorAll('.layer-item').forEach(item => {
-            item.classList.toggle('selected', item.dataset.shapeId === shapeId);
+            item.classList.toggle('selected', idSet.has(item.dataset.shapeId));
         });
+    }
+
+    // Backwards compatibility
+    highlightLayer(shapeId) {
+        this.highlightLayers(shapeId ? [shapeId] : []);
     }
 }
