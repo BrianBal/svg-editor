@@ -2,6 +2,7 @@ class Selection {
     constructor(canvas) {
         this.canvas = canvas;
         this.handlesLayer = document.getElementById('handles-layer');
+        this.svgRoot = document.getElementById('svg-canvas');
         this.handleSize = 8;
         this.activeHandle = null;
         this.selectedPointIndex = null;
@@ -207,7 +208,8 @@ class Selection {
 
     showPolylineHandles(shape) {
         shape.points.forEach((point, index) => {
-            const handle = this.createHandle(point.x, point.y, index, 'point');
+            const mappedPoint = SVGTransform.localToCanvas(shape.element, point.x, point.y, this.svgRoot);
+            const handle = this.createHandle(mappedPoint.x, mappedPoint.y, index, 'point');
             if (index === this.selectedPointIndex) {
                 handle.setAttribute('fill', '#ff6b6b');
             }
@@ -217,22 +219,26 @@ class Selection {
 
     showPathHandles(shape) {
         shape.points.forEach((point, index) => {
+            const mappedAnchor = SVGTransform.localToCanvas(shape.element, point.x, point.y, this.svgRoot);
+
             // Draw control handle lines first (so they're behind handles)
             if (point.handleIn) {
-                this.createHandleLine(point.x, point.y, point.handleIn.x, point.handleIn.y);
+                const mappedHandleIn = SVGTransform.localToCanvas(shape.element, point.handleIn.x, point.handleIn.y, this.svgRoot);
+                this.createHandleLine(mappedAnchor.x, mappedAnchor.y, mappedHandleIn.x, mappedHandleIn.y);
                 const handleIn = this.createControlHandle(
-                    point.handleIn.x,
-                    point.handleIn.y,
+                    mappedHandleIn.x,
+                    mappedHandleIn.y,
                     `${index}-in`,
                     'path-handle-in'
                 );
                 this.handlesLayer.appendChild(handleIn);
             }
             if (point.handleOut) {
-                this.createHandleLine(point.x, point.y, point.handleOut.x, point.handleOut.y);
+                const mappedHandleOut = SVGTransform.localToCanvas(shape.element, point.handleOut.x, point.handleOut.y, this.svgRoot);
+                this.createHandleLine(mappedAnchor.x, mappedAnchor.y, mappedHandleOut.x, mappedHandleOut.y);
                 const handleOut = this.createControlHandle(
-                    point.handleOut.x,
-                    point.handleOut.y,
+                    mappedHandleOut.x,
+                    mappedHandleOut.y,
                     `${index}-out`,
                     'path-handle-out'
                 );
@@ -240,7 +246,7 @@ class Selection {
             }
 
             // Anchor point handle (on top)
-            const anchorHandle = this.createHandle(point.x, point.y, index, 'path-point');
+            const anchorHandle = this.createHandle(mappedAnchor.x, mappedAnchor.y, index, 'path-point');
             if (index === this.selectedPointIndex) {
                 anchorHandle.setAttribute('fill', '#ff6b6b');
             }
