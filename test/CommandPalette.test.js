@@ -395,12 +395,14 @@ describe('CommandPalette', () => {
 
         it('flips shape horizontally', () => {
             palette.flipShapes('horizontal');
-            expect(rect.rotation).toBe(135); // 180 - 45 = 135
+            expect(rect.scaleX).toBe(-1); // Flipped horizontally
+            expect(rect.rotation).toBe(45); // Rotation unchanged
         });
 
         it('flips shape vertically', () => {
             palette.flipShapes('vertical');
-            expect(rect.rotation).toBe(315); // 360 - 45 = 315
+            expect(rect.scaleY).toBe(-1); // Flipped vertically
+            expect(rect.rotation).toBe(45); // Rotation unchanged
         });
     });
 

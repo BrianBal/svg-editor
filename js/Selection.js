@@ -84,6 +84,7 @@ class Selection {
     }
 
     // Draw 8 resize handles and rotation handle for a given bounds rect
+    // Note: Multi-selection bounds are always axis-aligned (no rotation)
     showBoundsHandlesForRect(bounds) {
         const positions = [
             { name: 'nw', x: bounds.x, y: bounds.y },
@@ -162,19 +163,26 @@ class Selection {
             { name: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
         ];
 
+        // Transform handle positions if shape is rotated
         positions.forEach(pos => {
-            const handle = this.createHandle(pos.x, pos.y, pos.name, 'resize');
+            const transformed = this.getTransformedPoint(shape, pos.x, pos.y);
+            const handle = this.createHandle(transformed.x, transformed.y, pos.name, 'resize');
             this.handlesLayer.appendChild(handle);
         });
 
         // Add rotation handle 25px above top-center
-        const rotateHandleX = bounds.x + bounds.width / 2;
-        const rotateHandleY = bounds.y - 25;
+        const topCenterLocal = { x: bounds.x + bounds.width / 2, y: bounds.y };
+        const topCenter = this.getTransformedPoint(shape, topCenterLocal.x, topCenterLocal.y);
+
+        // Calculate rotation handle position (25px above top-center in rotated space)
+        const angle = (shape.rotation || 0) * Math.PI / 180;
+        const rotateHandleX = topCenter.x - 25 * Math.sin(angle);
+        const rotateHandleY = topCenter.y - 25 * Math.cos(angle);
 
         // Connecting line from top-center to rotation handle
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', rotateHandleX);
-        line.setAttribute('y1', bounds.y);
+        line.setAttribute('x1', topCenter.x);
+        line.setAttribute('y1', topCenter.y);
         line.setAttribute('x2', rotateHandleX);
         line.setAttribute('y2', rotateHandleY);
         line.setAttribute('stroke', '#4a90d9');
@@ -198,16 +206,39 @@ class Selection {
         this.handlesLayer.appendChild(rotateHandle);
     }
 
+    // Map shape-local coordinates -> SVG page coordinates (account for transforms)
+    getTransformedPoint(shape, x, y) {
+        try {
+            if (shape.element && typeof shape.element.getCTM === 'function') {
+                const svg = document.getElementById('svg-canvas');
+                const pt = svg.createSVGPoint();
+                pt.x = x;
+                pt.y = y;
+                const ctm = shape.element.getCTM();
+                if (ctm) {
+                    const transformed = pt.matrixTransform(ctm);
+                    return { x: transformed.x, y: transformed.y };
+                }
+            }
+        } catch (e) {
+            // ignore and fall through
+        }
+        return { x, y };
+    }
+
     showLineHandles(shape) {
-        const handle1 = this.createHandle(shape.x1, shape.y1, 0, 'point');
-        const handle2 = this.createHandle(shape.x2, shape.y2, 1, 'point');
+        const p1 = this.getTransformedPoint(shape, shape.x1, shape.y1);
+        const p2 = this.getTransformedPoint(shape, shape.x2, shape.y2);
+        const handle1 = this.createHandle(p1.x, p1.y, 0, 'point');
+        const handle2 = this.createHandle(p2.x, p2.y, 1, 'point');
         this.handlesLayer.appendChild(handle1);
         this.handlesLayer.appendChild(handle2);
     }
 
     showPolylineHandles(shape) {
         shape.points.forEach((point, index) => {
-            const handle = this.createHandle(point.x, point.y, index, 'point');
+            const p = this.getTransformedPoint(shape, point.x, point.y);
+            const handle = this.createHandle(p.x, p.y, index, 'point');
             if (index === this.selectedPointIndex) {
                 handle.setAttribute('fill', '#ff6b6b');
             }
@@ -219,20 +250,24 @@ class Selection {
         shape.points.forEach((point, index) => {
             // Draw control handle lines first (so they're behind handles)
             if (point.handleIn) {
-                this.createHandleLine(point.x, point.y, point.handleIn.x, point.handleIn.y);
+                const pAnchor = this.getTransformedPoint(shape, point.x, point.y);
+                const pIn = this.getTransformedPoint(shape, point.handleIn.x, point.handleIn.y);
+                this.createHandleLine(pAnchor.x, pAnchor.y, pIn.x, pIn.y);
                 const handleIn = this.createControlHandle(
-                    point.handleIn.x,
-                    point.handleIn.y,
+                    pIn.x,
+                    pIn.y,
                     `${index}-in`,
                     'path-handle-in'
                 );
                 this.handlesLayer.appendChild(handleIn);
             }
             if (point.handleOut) {
-                this.createHandleLine(point.x, point.y, point.handleOut.x, point.handleOut.y);
+                const pAnchor = this.getTransformedPoint(shape, point.x, point.y);
+                const pOut = this.getTransformedPoint(shape, point.handleOut.x, point.handleOut.y);
+                this.createHandleLine(pAnchor.x, pAnchor.y, pOut.x, pOut.y);
                 const handleOut = this.createControlHandle(
-                    point.handleOut.x,
-                    point.handleOut.y,
+                    pOut.x,
+                    pOut.y,
                     `${index}-out`,
                     'path-handle-out'
                 );
@@ -240,7 +275,8 @@ class Selection {
             }
 
             // Anchor point handle (on top)
-            const anchorHandle = this.createHandle(point.x, point.y, index, 'path-point');
+            const pAnchor = this.getTransformedPoint(shape, point.x, point.y);
+            const anchorHandle = this.createHandle(pAnchor.x, pAnchor.y, index, 'path-point');
             if (index === this.selectedPointIndex) {
                 anchorHandle.setAttribute('fill', '#ff6b6b');
             }
@@ -320,6 +356,14 @@ class Selection {
         outline.setAttribute('stroke-dasharray', '4 2');
         outline.classList.add('selection-outline');
         outline.style.pointerEvents = 'none';
+
+        // Copy shape's transform to selection outline
+        if (shape.element) {
+            const transform = shape.element.getAttribute('transform');
+            if (transform) {
+                outline.setAttribute('transform', transform);
+            }
+        }
 
         this.handlesLayer.appendChild(outline);
     }

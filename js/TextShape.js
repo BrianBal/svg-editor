@@ -68,6 +68,7 @@ class TextShape extends Shape {
             this.element.setAttribute('font-size', this.fontSize);
             this.element.setAttribute('font-family', this.fontFamily);
             this.element.textContent = this.text;
+            this.applyRotationTransform(this.element);
         }
     }
 

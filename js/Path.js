@@ -84,6 +84,7 @@ class Path extends PointBasedShape {
     updateElement() {
         if (this.element) {
             this.element.setAttribute('d', this.getPathData());
+            this.applyRotationTransform(this.element);
         }
     }
 

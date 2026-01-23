@@ -533,4 +533,71 @@ describe('Path', () => {
             expect(restored.strokeDash).toBe(original.strokeDash);
         });
     });
+
+    describe('rotation and transforms', () => {
+        beforeEach(() => {
+            path = new Path([
+                { x: 0, y: 0, handleIn: null, handleOut: { x: 30, y: 0 } },
+                { x: 100, y: 50, handleIn: { x: 70, y: 50 }, handleOut: null }
+            ]);
+        });
+
+        it('updates transform center after move', () => {
+            path.createSVGElement();
+            path.setRotation(45);
+            const originalTransform = path.element.getAttribute('transform');
+
+            path.move(25, 35);
+
+            const newTransform = path.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(45');
+        });
+
+        it('updates transform center after movePoint', () => {
+            path.createSVGElement();
+            path.setRotation(60);
+            const originalTransform = path.element.getAttribute('transform');
+
+            path.movePoint(0, 50, 50, null, { x: 80, y: 50 });
+
+            const newTransform = path.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(60');
+        });
+
+        it('updates transform center after addPoint', () => {
+            path.createSVGElement();
+            path.setRotation(30);
+            const originalTransform = path.element.getAttribute('transform');
+
+            path.addPoint(150, 100);
+
+            const newTransform = path.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(30');
+        });
+
+        it('updates transform center after closePath', () => {
+            path.createSVGElement();
+            path.setRotation(90);
+            const originalTransform = path.element.getAttribute('transform');
+
+            path.closePath();
+
+            const newTransform = path.element.getAttribute('transform');
+            expect(newTransform).toContain('rotate(90');
+        });
+
+        it('maintains rotation when path data changes', () => {
+            path.createSVGElement();
+            path.setRotation(120);
+
+            path.movePoint(1, 200, 100);
+
+            expect(path.rotation).toBe(120);
+            const transform = path.element.getAttribute('transform');
+            expect(transform).toContain('rotate(120');
+        });
+    });
 });

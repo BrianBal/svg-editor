@@ -58,6 +58,7 @@ class Ellipse extends Shape {
             this.element.setAttribute('cy', this.cy);
             this.element.setAttribute('rx', this.rx);
             this.element.setAttribute('ry', this.ry);
+            this.applyRotationTransform(this.element);
         }
     }
 

@@ -70,6 +70,7 @@ class Star extends Shape {
     updateElement() {
         if (this.element) {
             this.element.setAttribute('points', this.getPointsString());
+            this.applyRotationTransform(this.element);
         }
     }
 

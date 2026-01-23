@@ -78,6 +78,24 @@ describe('Rectangle', () => {
             expect(rect.y).toBe(45); // 20 + 25
         });
 
+        it('moves rotated rectangle down correctly', () => {
+            rect.rotation = 45;
+            rect.move(0, 50); // Move down
+
+            expect(rect.x).toBe(10); // x unchanged
+            expect(rect.y).toBe(70); // 20 + 50
+            expect(rect.rotation).toBe(45); // rotation unchanged
+        });
+
+        it('moves rotated rectangle sideways correctly', () => {
+            rect.rotation = 45;
+            rect.move(30, 0); // Move right
+
+            expect(rect.x).toBe(40); // 10 + 30
+            expect(rect.y).toBe(20); // y unchanged
+            expect(rect.rotation).toBe(45); // rotation unchanged
+        });
+
         it('emits shape:updated event', () => {
             rect.move(10, 10);
 
@@ -236,25 +254,32 @@ describe('Rectangle', () => {
     });
 
     describe('flip', () => {
-        it('flipHorizontal mirrors rotation around Y-axis', () => {
+        it('flipHorizontal toggles horizontal scale', () => {
             rect.rotation = 30;
+            expect(rect.scaleX).toBe(1);
+
             rect.flipHorizontal();
 
-            expect(rect.rotation).toBe(150); // 180 - 30
+            expect(rect.scaleX).toBe(-1);
+            expect(rect.rotation).toBe(30); // Rotation unchanged
         });
 
-        it('flipHorizontal at 0 degrees gives 180', () => {
-            rect.rotation = 0;
+        it('flipHorizontal toggles back', () => {
             rect.flipHorizontal();
+            expect(rect.scaleX).toBe(-1);
 
-            expect(rect.rotation).toBe(180);
+            rect.flipHorizontal();
+            expect(rect.scaleX).toBe(1); // Toggles back to normal
         });
 
-        it('flipVertical mirrors rotation around X-axis', () => {
+        it('flipVertical toggles vertical scale', () => {
             rect.rotation = 30;
+            expect(rect.scaleY).toBe(1);
+
             rect.flipVertical();
 
-            expect(rect.rotation).toBe(330); // 360 - 30
+            expect(rect.scaleY).toBe(-1);
+            expect(rect.rotation).toBe(30); // Rotation unchanged
         });
 
         it('flipVertical at 0 degrees stays at 0', () => {
@@ -262,6 +287,7 @@ describe('Rectangle', () => {
             rect.flipVertical();
 
             expect(rect.rotation).toBe(0);
+            expect(rect.scaleY).toBe(-1);
         });
 
         it('flipHorizontal emits shape:updated', () => {
@@ -272,6 +298,46 @@ describe('Rectangle', () => {
         it('flipVertical emits shape:updated', () => {
             rect.flipVertical();
             expect(emitSpy).toHaveBeenCalledWith('shape:updated', rect);
+        });
+    });
+
+    describe('rotation and transforms', () => {
+        it('updates transform center after move', () => {
+            rect.createSVGElement();
+            rect.setRotation(45);
+            const originalTransform = rect.element.getAttribute('transform');
+
+            rect.move(100, 100);
+
+            const newTransform = rect.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(45');
+        });
+
+        it('updates transform center after resize', () => {
+            rect.createSVGElement();
+            rect.setRotation(90);
+            const originalTransform = rect.element.getAttribute('transform');
+
+            rect.resize(50, 50, 200, 100);
+
+            const newTransform = rect.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(90');
+        });
+
+        it('handles flipped and rotated movement', () => {
+            rect.createSVGElement();
+            rect.setRotation(30);
+            rect.flipHorizontal();
+
+            rect.move(50, 0);
+
+            expect(rect.rotation).toBe(30);
+            expect(rect.scaleX).toBe(-1);
+            const transform = rect.element.getAttribute('transform');
+            expect(transform).toContain('scale(-1, 1)');
+            expect(transform).toContain('rotate(30');
         });
     });
 });

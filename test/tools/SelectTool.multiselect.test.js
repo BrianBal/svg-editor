@@ -140,6 +140,45 @@ describe('SelectTool - Multi-Select', () => {
             expect(rect2.y).toBe(60);  // 10 + 50
         });
 
+        it('moves rotated rectangle straight down', () => {
+            rect1.rotation = 45;
+            appState.selectShape('shape-1');
+
+            const startPos = { x: 35, y: 35 };  // Center of rect1
+            const endPos = { x: 35, y: 85 };    // Move 50px down (y only)
+
+            const mockEvent = {
+                target: { dataset: { shapeId: 'shape-1' } },
+                shiftKey: false
+            };
+            selectTool.onMouseDown(mockEvent, startPos);
+            selectTool.onMouseMove({}, endPos);
+
+            // Should move down by 50, x unchanged
+            expect(rect1.x).toBe(10);   // unchanged
+            expect(rect1.y).toBe(60);   // 10 + 50
+            expect(rect1.rotation).toBe(45);  // rotation preserved
+        });
+
+        it('moves rotated rectangle diagonally', () => {
+            rect1.rotation = 45;
+            appState.selectShape('shape-1');
+
+            const startPos = { x: 35, y: 35 };
+            const endPos = { x: 55, y: 75 };    // Move 20 right, 40 down
+
+            const mockEvent = {
+                target: { dataset: { shapeId: 'shape-1' } },
+                shiftKey: false
+            };
+            selectTool.onMouseDown(mockEvent, startPos);
+            selectTool.onMouseMove({}, endPos);
+
+            expect(rect1.x).toBe(30);   // 10 + 20
+            expect(rect1.y).toBe(50);   // 10 + 40
+            expect(rect1.rotation).toBe(45);
+        });
+
         it('maintains relative positions', () => {
             appState.selectShape('shape-1');
             appState.addToSelection('shape-2');

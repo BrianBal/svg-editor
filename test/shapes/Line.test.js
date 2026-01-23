@@ -183,4 +183,53 @@ describe('Line', () => {
             expect(line.element.getAttribute('y1')).toBe('60');
         });
     });
+
+    describe('rotation and transforms', () => {
+        it('updates transform center after move', () => {
+            line.createSVGElement();
+            line.setRotation(45);
+            const originalTransform = line.element.getAttribute('transform');
+
+            line.move(50, 50);
+
+            const newTransform = line.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(45');
+        });
+
+        it('updates transform center after movePoint', () => {
+            line.createSVGElement();
+            line.setRotation(30);
+            const originalTransform = line.element.getAttribute('transform');
+
+            line.movePoint(0, 100, 100);
+
+            const newTransform = line.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(30');
+        });
+
+        it('updates transform center after moveTo', () => {
+            line.createSVGElement();
+            line.setRotation(60);
+            const originalTransform = line.element.getAttribute('transform');
+
+            line.moveTo(200, 200);
+
+            const newTransform = line.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(60');
+        });
+
+        it('maintains rotation when moving endpoints', () => {
+            line.createSVGElement();
+            line.setRotation(90);
+
+            line.move(25, 35);
+
+            expect(line.rotation).toBe(90);
+            const transform = line.element.getAttribute('transform');
+            expect(transform).toContain('rotate(90');
+        });
+    });
 });

@@ -59,6 +59,7 @@ class Rectangle extends Shape {
                 this.element.removeAttribute('rx');
                 this.element.removeAttribute('ry');
             }
+            this.applyRotationTransform(this.element);
         }
     }
 

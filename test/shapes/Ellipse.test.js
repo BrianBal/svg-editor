@@ -128,4 +128,56 @@ describe('Ellipse', () => {
             expect(el.getAttribute('ry')).toBe('30');
         });
     });
+
+    describe('rotation and transforms', () => {
+        it('updates transform center after move', () => {
+            ellipse.createSVGElement();
+            ellipse.setRotation(45);
+            const originalTransform = ellipse.element.getAttribute('transform');
+
+            ellipse.move(50, 50);
+
+            const newTransform = ellipse.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(45');
+        });
+
+        it('updates transform center after resize', () => {
+            ellipse.createSVGElement();
+            ellipse.setRotation(90);
+            const originalTransform = ellipse.element.getAttribute('transform');
+
+            ellipse.resize(0, 0, 200, 100);
+
+            const newTransform = ellipse.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(90');
+        });
+
+        it('updates transform center after moveTo', () => {
+            ellipse.createSVGElement();
+            ellipse.setRotation(30);
+            const originalTransform = ellipse.element.getAttribute('transform');
+
+            ellipse.moveTo(200, 200);
+
+            const newTransform = ellipse.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(30');
+        });
+
+        it('handles flipped and rotated movement', () => {
+            ellipse.createSVGElement();
+            ellipse.setRotation(45);
+            ellipse.flipVertical();
+
+            ellipse.move(0, 50);
+
+            expect(ellipse.rotation).toBe(45);
+            expect(ellipse.scaleY).toBe(-1);
+            const transform = ellipse.element.getAttribute('transform');
+            expect(transform).toContain('scale(1, -1)');
+            expect(transform).toContain('rotate(45');
+        });
+    });
 });

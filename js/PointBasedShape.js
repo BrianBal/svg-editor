@@ -109,4 +109,48 @@ class PointBasedShape extends Shape {
     canRemovePoint() {
         return this.points.length > 2;
     }
+
+    /**
+     * Flip horizontally by mirroring point X coordinates around the center.
+     */
+    flipHorizontal() {
+        const bounds = this.getBounds();
+        const centerX = bounds.x + bounds.width / 2;
+
+        this.points.forEach(p => {
+            p.x = centerX + (centerX - p.x);
+            // Also flip control handles for Path points
+            if (p.handleIn) {
+                p.handleIn.x = centerX + (centerX - p.handleIn.x);
+            }
+            if (p.handleOut) {
+                p.handleOut.x = centerX + (centerX - p.handleOut.x);
+            }
+        });
+
+        this.updateElement();
+        eventBus.emit('shape:updated', this);
+    }
+
+    /**
+     * Flip vertically by mirroring point Y coordinates around the center.
+     */
+    flipVertical() {
+        const bounds = this.getBounds();
+        const centerY = bounds.y + bounds.height / 2;
+
+        this.points.forEach(p => {
+            p.y = centerY + (centerY - p.y);
+            // Also flip control handles for Path points
+            if (p.handleIn) {
+                p.handleIn.y = centerY + (centerY - p.handleIn.y);
+            }
+            if (p.handleOut) {
+                p.handleOut.y = centerY + (centerY - p.handleOut.y);
+            }
+        });
+
+        this.updateElement();
+        eventBus.emit('shape:updated', this);
+    }
 }

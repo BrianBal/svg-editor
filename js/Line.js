@@ -61,6 +61,7 @@ class Line extends Shape {
             this.element.setAttribute('y1', this.y1);
             this.element.setAttribute('x2', this.x2);
             this.element.setAttribute('y2', this.y2);
+            this.applyRotationTransform(this.element);
         }
     }
 
@@ -109,5 +110,23 @@ class Line extends Shape {
         const copy = new Line(this.x1 + offset, this.y1 + offset, this.x2 + offset, this.y2 + offset);
         this.copyAttributesTo(copy);
         return copy;
+    }
+
+    flipHorizontal() {
+        const bounds = this.getBounds();
+        const centerX = bounds.x + bounds.width / 2;
+        this.x1 = centerX + (centerX - this.x1);
+        this.x2 = centerX + (centerX - this.x2);
+        this.updateElement();
+        eventBus.emit('shape:updated', this);
+    }
+
+    flipVertical() {
+        const bounds = this.getBounds();
+        const centerY = bounds.y + bounds.height / 2;
+        this.y1 = centerY + (centerY - this.y1);
+        this.y2 = centerY + (centerY - this.y2);
+        this.updateElement();
+        eventBus.emit('shape:updated', this);
     }
 }

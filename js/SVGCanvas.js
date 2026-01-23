@@ -81,6 +81,30 @@ class SVGCanvas {
         };
     }
 
+    // Convert a point in SVG coordinates to the local coordinates of a shape element
+    toLocalPoint(shape, pos) {
+        try {
+            if (shape.element && typeof shape.element.getCTM === 'function') {
+                const svg = document.getElementById('svg-canvas');
+                const pt = svg.createSVGPoint();
+                pt.x = pos.x;
+                pt.y = pos.y;
+                const ctm = shape.element.getCTM();
+                if (ctm) {
+                    // Inverse transform: use matrixTransform with inverse matrix
+                    const inverse = ctm.inverse ? ctm.inverse() : null;
+                    if (inverse) {
+                        const local = pt.matrixTransform(inverse);
+                        return { x: local.x, y: local.y };
+                    }
+                }
+            }
+        } catch (e) {
+            // ignore and fall through
+        }
+        return pos;
+    }
+
     handleMouseDown(e) {
         const pos = this.getMousePosition(e);
 
@@ -389,24 +413,28 @@ class SVGCanvas {
 
     handlePolylinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = this.toLocalPoint(shape, pos);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handleLinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = this.toLocalPoint(shape, pos);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handlePathPointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);
-        shape.movePoint(pointIndex, pos.x, pos.y);
+        const local = this.toLocalPoint(shape, pos);
+        shape.movePoint(pointIndex, local.x, local.y);
     }
 
     handlePathHandleMove(shape, pos) {
         // Handle data format: "index-in" or "index-out"
         const [indexStr, handleType] = this.activeHandle.data.split('-');
         const pointIndex = parseInt(indexStr);
-        shape.moveHandle(pointIndex, handleType, pos.x, pos.y);
+        const local = this.toLocalPoint(shape, pos);
+        shape.moveHandle(pointIndex, handleType, local.x, local.y);
     }
 
     addShape(shape) {

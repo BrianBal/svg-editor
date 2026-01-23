@@ -186,4 +186,56 @@ describe('Star', () => {
             expect(points).toHaveLength(6);
         });
     });
+
+    describe('rotation and transforms', () => {
+        it('updates transform center after move', () => {
+            star.createSVGElement();
+            star.setRotation(60);
+            const originalTransform = star.element.getAttribute('transform');
+
+            star.move(30, 40);
+
+            const newTransform = star.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(60');
+        });
+
+        it('updates transform center after resize', () => {
+            star.createSVGElement();
+            star.setRotation(120);
+            const originalTransform = star.element.getAttribute('transform');
+
+            star.resize(0, 0, 150, 150);
+
+            const newTransform = star.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(120');
+        });
+
+        it('updates transform center after moveTo', () => {
+            star.createSVGElement();
+            star.setRotation(15);
+            const originalTransform = star.element.getAttribute('transform');
+
+            star.moveTo(150, 150);
+
+            const newTransform = star.element.getAttribute('transform');
+            expect(newTransform).not.toBe(originalTransform);
+            expect(newTransform).toContain('rotate(15');
+        });
+
+        it('handles flipped and rotated movement', () => {
+            star.createSVGElement();
+            star.setRotation(72);
+            star.flipHorizontal();
+
+            star.move(25, 0);
+
+            expect(star.rotation).toBe(72);
+            expect(star.scaleX).toBe(-1);
+            const transform = star.element.getAttribute('transform');
+            expect(transform).toContain('scale(-1, 1)');
+            expect(transform).toContain('rotate(72');
+        });
+    });
 });

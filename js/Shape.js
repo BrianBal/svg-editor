@@ -25,6 +25,8 @@ class Shape {
         this.element = null;
         this.visible = true;
         this.rotation = 0;
+        this.scaleX = 1;
+        this.scaleY = 1;
     }
 
     createSVGElement() {
@@ -132,19 +134,34 @@ class Shape {
     }
 
     applyRotationTransform(element) {
+        const bounds = this.getBounds();
+        const cx = bounds.x + bounds.width / 2;
+        const cy = bounds.y + bounds.height / 2;
+
+        const transforms = [];
+
+        // Apply scale (flip) first
+        if (this.scaleX !== 1 || this.scaleY !== 1) {
+            transforms.push(`translate(${cx}, ${cy})`);
+            transforms.push(`scale(${this.scaleX}, ${this.scaleY})`);
+            transforms.push(`translate(${-cx}, ${-cy})`);
+        }
+
+        // Then apply rotation
         if (this.rotation !== 0) {
-            const bounds = this.getBounds();
-            const cx = bounds.x + bounds.width / 2;
-            const cy = bounds.y + bounds.height / 2;
-            element.setAttribute('transform', `rotate(${this.rotation}, ${cx}, ${cy})`);
+            transforms.push(`rotate(${this.rotation}, ${cx}, ${cy})`);
+        }
+
+        if (transforms.length > 0) {
+            element.setAttribute('transform', transforms.join(' '));
         } else {
             element.removeAttribute('transform');
         }
     }
 
     flipHorizontal() {
-        // Mirror rotation around Y-axis: newAngle = (180 - angle)
-        this.rotation = ((180 - this.rotation) % 360 + 360) % 360;
+        // Toggle horizontal scale (flip around Y-axis)
+        this.scaleX = -this.scaleX;
         if (this.element) {
             this.applyRotationTransform(this.element);
         }
@@ -152,8 +169,8 @@ class Shape {
     }
 
     flipVertical() {
-        // Mirror rotation around X-axis: newAngle = (360 - angle)
-        this.rotation = ((360 - this.rotation) % 360 + 360) % 360;
+        // Toggle vertical scale (flip around X-axis)
+        this.scaleY = -this.scaleY;
         if (this.element) {
             this.applyRotationTransform(this.element);
         }
@@ -207,6 +224,8 @@ class Shape {
         shape.strokeLinejoin = this.strokeLinejoin;
         shape.visible = this.visible;
         shape.rotation = this.rotation;
+        shape.scaleX = this.scaleX;
+        shape.scaleY = this.scaleY;
 
         // Handle fill with gradient support
         if (this.fillGradient) {
