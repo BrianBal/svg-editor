@@ -24,6 +24,7 @@ const files = [
     { file: 'HistoryManager.js', className: 'HistoryManager' },
     { file: 'ClipboardManager.js', className: 'ClipboardManager' },
     { file: 'PenTool.js', className: 'PenTool' },
+    { file: 'SmartPencilTool.js', className: 'SmartPencilTool' },
     { file: 'CommandPalette.js', className: 'CommandPalette' },
 ];
 

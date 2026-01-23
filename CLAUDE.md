@@ -160,6 +160,115 @@ The `PenTool` creates bezier curve paths with control handles:
 - **Double-click** or **Escape** to finish an open path
 - Keyboard shortcut: `B`
 
+#### SmartPencilTool (Intelligent Shape Recognition)
+
+The `SmartPencilTool` (`js/SmartPencilTool.js`) automatically recognizes hand-drawn shapes and converts them to perfect geometric shapes.
+
+**How It Works:**
+1. User draws freehand with the Smart Pencil tool
+2. After 1.5 seconds of inactivity, recognition activates
+3. Raw points are simplified using Ramer-Douglas-Peucker algorithm
+4. Recognition algorithm analyzes the simplified path
+5. Recognized shapes replace the freehand drawing
+
+**Recognized Shapes:**
+- **Line** - Straight or nearly straight paths
+- **Circle** - Round, closed shapes with uniform radius
+- **Rectangle** - Closed shapes with 4-ish corners
+- **Triangle** - Closed shapes with 3-ish corners
+- **Polyline** - Fallback for unrecognized shapes
+
+**Recognition Algorithms:**
+
+The tool supports two recognition algorithms that can be switched dynamically:
+
+1. **Threshold Algorithm** (default) - Uses geometric heuristics
+   - Analyzes circularity, corner detection, aspect ratio
+   - Very fast (<1ms per recognition)
+   - Works well with precise mouse input and clear corners
+   - Best for shapes with distinct geometric features
+   - **Accuracy on trackpad data: 68%**
+
+2. **Coverage Algorithm** - Uses area overlap matching
+   - Creates template shapes and calculates overlap percentage
+   - Uses grid sampling (50x50 default) for efficient comparison
+   - Rotation-invariant and distortion-tolerant
+   - Slower but still fast (~9ms per recognition)
+   - Better handles rough or distorted shapes
+   - **Accuracy on trackpad data: 64%**
+
+**Switching Algorithms:**
+
+```javascript
+// Get the smart pencil tool instance
+const smartTool = canvas.tools.smart;
+
+// Use threshold algorithm (default - recommended)
+smartTool.recognitionAlgorithm = 'threshold';
+
+// Use coverage algorithm
+smartTool.recognitionAlgorithm = 'coverage';
+```
+
+**Configuration:**
+
+```javascript
+// Threshold algorithm settings
+smartTool.CIRCLE_CIRCULARITY_MIN = 0.93;  // Circle detection threshold
+smartTool.CORNER_ANGLE_THRESHOLD = 130;   // Corner detection sensitivity
+smartTool.CORNER_LOOK_AHEAD = 2;          // Corner detection window
+
+// Coverage algorithm settings
+smartTool.COVERAGE_CIRCLE_THRESHOLD = 0.60;     // 60% overlap for circles
+smartTool.COVERAGE_RECT_THRESHOLD = 0.55;       // 55% overlap for rectangles
+smartTool.COVERAGE_TRIANGLE_THRESHOLD = 0.50;   // 50% overlap for triangles
+smartTool.COVERAGE_GRID_SIZE = 50;              // Grid resolution
+```
+
+**Recognition Process:**
+
+*Threshold Algorithm:*
+1. Simplifies points (removes redundant points)
+2. Calculates geometric properties (circularity, corners, aspect ratio)
+3. Detects corners on raw points (before simplification)
+4. Tests shapes in priority order: Line → Circle → Rectangle → Triangle
+5. Falls back to polyline if no match
+
+*Coverage Algorithm:*
+1. Simplifies points
+2. Tests line recognition (distance-based)
+3. For closed shapes:
+   - Creates template shapes (circle, rectangle, triangle)
+   - Samples grid points over bounding box
+   - Counts overlapping pixels (Jaccard similarity)
+   - Selects best match above threshold
+4. Falls back to polyline if no match
+
+**Key Features:**
+
+- **Point simplification**: Ramer-Douglas-Peucker reduces point count while preserving shape
+- **Visual feedback**: Blue preview path with pulse animation during recognition delay
+- **Debouncing**: 1.5-second delay prevents premature recognition
+- **Threshold tuning**: Both algorithms tuned based on real trackpad data analysis
+- **Performance**: Both algorithms fast enough for real-time use (<30ms worst case)
+
+**Testing:**
+
+The SmartPencilTool has comprehensive test coverage:
+- `test/tools/SmartPencilTool.test.js` - Threshold algorithm tests (50 tests)
+- `test/tools/SmartPencilTool.coverage.test.js` - Coverage algorithm tests (38 tests)
+- `test/tools/SmartPencilTool.realdata.test.js` - Real trackpad data validation
+- `test/tools/SmartPencilTool.algorithm-comparison.test.js` - Algorithm comparison
+
+**Recommendation:**
+
+Use the **threshold algorithm** (default) for best results:
+- More accurate overall (68% vs 64% on real trackpad data)
+- 41x faster (0.2ms vs 8.9ms average)
+- Better tuned for trackpad input with rounded corners
+
+The coverage algorithm is available as an alternative for cases where rotation-invariant or objective overlap scoring is needed.
+
 ### DOM Structure
 
 - `#svg-canvas` - Main SVG element

@@ -14,7 +14,8 @@ class App {
             ellipse: new EllipseTool(this.canvas),
             line: new LineTool(this.canvas),
             star: new StarTool(this.canvas),
-            text: new TextTool(this.canvas)
+            text: new TextTool(this.canvas),
+            smartpencil: new SmartPencilTool(this.canvas)
         };
         this.canvas.setTools(tools);
 
@@ -201,6 +202,11 @@ class App {
                     break;
 
                 case 'Escape':
+                    // Cancel smartpencil recognition if active
+                    const currentTool = this.canvas.currentTool;
+                    if (currentTool && currentTool.cancel) {
+                        currentTool.cancel();
+                    }
                     appState.deselectAll();
                     appState.setTool('select');
                     break;
@@ -285,6 +291,13 @@ class App {
                         e.preventDefault();
                         this.fileManager.saveCurrentFile();
                     } else {
+                        appState.setTool('smartpencil');
+                    }
+                    break;
+
+                case 'w':
+                case 'W':
+                    if (!e.ctrlKey && !e.metaKey) {
                         appState.setTool('star');
                     }
                     break;
