@@ -298,6 +298,17 @@ Shapes support rotation via the `transform` SVG attribute.
 1. Each shape has a `rotation` property (0-360 degrees)
 2. Rotation is applied via `transform="rotate(angle, cx, cy)"` centered on the shape's bounding box
 3. Methods: `setRotation(degrees)`, `flipHorizontal()`, `flipVertical()`
+4. All shapes call `this.updateRotationTransform()` in their `updateElement()` method to keep rotation center synchronized with shape position/size
+
+#### Rotated Shape Movement & Selection
+
+Rotated shapes move correctly in screen coordinates and maintain proper selection UI alignment:
+
+- **Transform Center Updates**: All shape classes update their rotation transform center whenever the shape is moved, resized, or modified. This ensures the rotation pivot point stays centered on the shape's bounding box.
+- **Selection Outline**: The selection outline rotates with the shape by copying its `transform` attribute, ensuring visual alignment.
+- **Resize Handles**: Positioned at the actual rotated corners using `getTransformedPoint()` to convert local coordinates through the rotation matrix.
+- **Rotation Handle**: Extends from the top-center in the rotated direction, maintaining proper orientation.
+- **Movement**: Shapes move in screen coordinates (straight up/down/left/right) even when rotated, avoiding diagonal drift.
 
 #### UI Components
 
