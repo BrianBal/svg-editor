@@ -61,7 +61,7 @@ class Line extends Shape {
             this.element.setAttribute('y1', this.y1);
             this.element.setAttribute('x2', this.x2);
             this.element.setAttribute('y2', this.y2);
-            this.applyRotationTransform(this.element);
+            this.applyTransform(this.element);
         }
     }
 

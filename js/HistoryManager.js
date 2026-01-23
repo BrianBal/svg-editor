@@ -371,7 +371,14 @@ class HistoryManager {
             strokeLinecap: shape.strokeLinecap,
             strokeLinejoin: shape.strokeLinejoin,
             visible: shape.visible,
-            rotation: shape.rotation || 0
+            rotation: shape.rotation || 0,
+            scaleX: shape.scaleX || 1,
+            scaleY: shape.scaleY || 1,
+            skewX: shape.skewX || 0,
+            skewY: shape.skewY || 0,
+            rotateX: shape.rotateX || 0,
+            rotateY: shape.rotateY || 0,
+            perspective: shape.perspective || 1000
         };
 
         switch (shape.type) {
@@ -472,6 +479,13 @@ class HistoryManager {
             shape.strokeLinejoin = state.strokeLinejoin;
             shape.visible = state.visible;
             shape.rotation = state.rotation || 0;
+            shape.scaleX = state.scaleX || 1;
+            shape.scaleY = state.scaleY || 1;
+            shape.skewX = state.skewX || 0;
+            shape.skewY = state.skewY || 0;
+            shape.rotateX = state.rotateX || 0;
+            shape.rotateY = state.rotateY || 0;
+            shape.perspective = state.perspective || 1000;
 
             // Restore fill with gradient support
             if (state.fillGradient) {
@@ -549,6 +563,13 @@ class HistoryManager {
         shape.strokeLinejoin = state.strokeLinejoin;
         shape.visible = state.visible;
         shape.rotation = state.rotation || 0;
+        shape.scaleX = state.scaleX || 1;
+        shape.scaleY = state.scaleY || 1;
+        shape.skewX = state.skewX || 0;
+        shape.skewY = state.skewY || 0;
+        shape.rotateX = state.rotateX || 0;
+        shape.rotateY = state.rotateY || 0;
+        shape.perspective = state.perspective || 1000;
 
         // Handle fill with gradient support
         if (state.fillGradient) {

@@ -11,8 +11,9 @@ const PropertyGroups = {
 
     // Shape context
     transform: { label: 'Transform', order: 1 },
-    appearance: { label: 'Appearance', order: 2 },
-    stroke: { label: null, order: 3, parent: 'appearance' },
+    perspective: { label: 'Perspective', order: 2 },
+    appearance: { label: 'Appearance', order: 3 },
+    stroke: { label: null, order: 4, parent: 'appearance' },
 
     // Shape-specific (order 10+ to appear after common groups)
     rectangle: { label: 'Rectangle', order: 10 },
@@ -188,6 +189,73 @@ const BaseShapeProperties = {
         action: (shape) => shape.flipVertical()
     },
 
+    // Perspective group
+    skewX: {
+        type: 'number',
+        label: 'Skew X',
+        group: 'perspective',
+        suffix: '°',
+        min: -89,
+        max: 89,
+        step: 1,
+        get: (shape) => Math.round(shape.skewX || 0),
+        set: (shape, value) => shape.setSkewX(value)
+    },
+    skewY: {
+        type: 'number',
+        label: 'Skew Y',
+        group: 'perspective',
+        suffix: '°',
+        min: -89,
+        max: 89,
+        step: 1,
+        get: (shape) => Math.round(shape.skewY || 0),
+        set: (shape, value) => shape.setSkewY(value)
+    },
+    rotateX: {
+        type: 'number',
+        label: 'Rotate X',
+        group: 'perspective',
+        suffix: '°',
+        min: -180,
+        max: 180,
+        step: 1,
+        get: (shape) => Math.round(shape.rotateX || 0),
+        set: (shape, value) => shape.setRotateX(value)
+    },
+    rotateY: {
+        type: 'number',
+        label: 'Rotate Y',
+        group: 'perspective',
+        suffix: '°',
+        min: -180,
+        max: 180,
+        step: 1,
+        get: (shape) => Math.round(shape.rotateY || 0),
+        set: (shape, value) => shape.setRotateY(value)
+    },
+    perspective: {
+        type: 'number',
+        label: 'Perspective',
+        group: 'perspective',
+        suffix: 'px',
+        min: 100,
+        max: 5000,
+        step: 50,
+        get: (shape) => shape.perspective || 1000,
+        set: (shape, value) => shape.setPerspective(value)
+    },
+    resetPerspective: {
+        type: 'button',
+        label: 'Reset 3D',
+        group: 'perspective',
+        action: (shape) => {
+            shape.setRotateX(0);
+            shape.setRotateY(0);
+            shape.setPerspective(1000);
+        }
+    },
+
     // Appearance group
     fill: {
         type: 'fill',
@@ -309,9 +377,14 @@ class PropertiesPanel {
     loadCollapsedSections() {
         try {
             const saved = localStorage.getItem('propertiesPanel.collapsed');
-            return saved ? JSON.parse(saved) : {};
+            const collapsed = saved ? JSON.parse(saved) : {};
+            // Default perspective to collapsed on first use
+            if (saved === null) {
+                collapsed.perspective = true;
+            }
+            return collapsed;
         } catch {
-            return {};
+            return { perspective: true };
         }
     }
 
@@ -627,7 +700,7 @@ class PropertiesPanel {
         const commonSchema = {};
 
         // Shape-specific property groups to exclude for mixed types
-        const shapeSpecificGroups = ['rectangle', 'ellipse', 'star', 'text', 'polyline', 'line', 'path'];
+        const shapeSpecificGroups = ['rectangle', 'ellipse', 'star', 'text', 'polyline', 'line', 'path', 'perspective'];
 
         // Check if all shapes are the same type
         const types = new Set(shapes.map(s => s.type));

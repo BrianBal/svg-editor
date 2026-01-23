@@ -354,14 +354,38 @@ class FileManager {
             shape.fillGradient = null;
         }
 
-        // Parse transform attribute for rotation
+        // Parse transform attribute for rotation and skew
         const transform = element.getAttribute('transform');
         if (transform) {
             const rotateMatch = transform.match(/rotate\(\s*([\d.-]+)/);
             if (rotateMatch) {
                 shape.rotation = parseFloat(rotateMatch[1]) || 0;
             }
+
+            // Parse skewX from transform attribute
+            const skewXMatch = transform.match(/skewX\(\s*([\d.-]+)/);
+            if (skewXMatch) {
+                shape.skewX = parseFloat(skewXMatch[1]) || 0;
+            }
+
+            // Parse skewY from transform attribute
+            const skewYMatch = transform.match(/skewY\(\s*([\d.-]+)/);
+            if (skewYMatch) {
+                shape.skewY = parseFloat(skewYMatch[1]) || 0;
+            }
+
+            // Parse scale from transform (for flip operations)
+            const scaleMatch = transform.match(/scale\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)/);
+            if (scaleMatch) {
+                shape.scaleX = parseFloat(scaleMatch[1]) || 1;
+                shape.scaleY = parseFloat(scaleMatch[2]) || 1;
+            }
         }
+
+        // Parse 3D rotation from data attributes
+        shape.rotateX = parseFloat(element.getAttribute('data-rotate-x')) || 0;
+        shape.rotateY = parseFloat(element.getAttribute('data-rotate-y')) || 0;
+        shape.perspective = parseFloat(element.getAttribute('data-perspective')) || 1000;
     }
 
     async saveCurrentFile() {

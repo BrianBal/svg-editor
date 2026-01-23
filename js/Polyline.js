@@ -72,7 +72,7 @@ class Polyline extends PointBasedShape {
     updateElement() {
         if (this.element) {
             this.element.setAttribute('points', this.getPointsString());
-            this.applyRotationTransform(this.element);
+            this.applyTransform(this.element);
         }
     }
 

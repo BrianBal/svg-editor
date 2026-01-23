@@ -159,6 +159,13 @@ class SelectTool {
     }
 
     onMouseUp(e, pos) {
+        if (this.isDragging && this.originalStates) {
+            // Emit shape:updated for all moved shapes to trigger auto-save
+            for (const shape of appState.getSelectedShapes()) {
+                eventBus.emit('shape:updated', shape);
+            }
+        }
+
         if (window.historyManager) {
             const selectedIds = appState.selectedShapeIds;
             if (selectedIds.length === 1) {
