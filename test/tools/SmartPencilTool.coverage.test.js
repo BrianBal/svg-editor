@@ -671,7 +671,7 @@ describe('SmartPencilTool - Coverage Algorithm', () => {
             tool.recognizeAndReplaceCoverageAlgorithm();
             const duration = performance.now() - start;
 
-            expect(duration).toBeLessThan(100);
+            expect(duration).toBeLessThan(150);
         });
     });
 

@@ -2,9 +2,10 @@ class Selection {
     constructor(canvas) {
         this.canvas = canvas;
         this.handlesLayer = document.getElementById('handles-layer');
-        this.handleSize = 8;
+        this.handleSize = 6;
         this.activeHandle = null;
         this.selectedPointIndex = null;
+        this.isDraggingAny = false;
 
         // Listen to multi-select event
         eventBus.on('selection:changed', (shapes) => this.onSelectionChanged(shapes));
@@ -24,8 +25,18 @@ class Selection {
         });
     }
 
+    setDragging(isDragging) {
+        this.isDraggingAny = isDragging;
+        if (!isDragging) {
+            this.updateHandles();
+        } else {
+            this.clear();
+        }
+    }
+
     // Handle selection changes (0, 1, or multiple shapes)
     onSelectionChanged(shapes) {
+        if (this.isDraggingAny) return;
         this.clear();
         if (!shapes || shapes.length === 0) {
             const hadPointSelected = this.selectedPointIndex !== null;
@@ -124,8 +135,15 @@ class Selection {
         rotateHandle.setAttribute('cy', rotateHandleY);
         rotateHandle.setAttribute('r', 5);
         rotateHandle.setAttribute('fill', '#4a90d9');
+        rotateHandle.setAttribute('fill-opacity', '0.5');
         rotateHandle.setAttribute('stroke', '#ffffff');
         rotateHandle.setAttribute('stroke-width', '1');
+        if (typeof window.getZoomScale === 'function') {
+            const inverseScale = 1 / window.getZoomScale();
+            // Scale around the circle's center: translate to origin, scale, translate back
+            const transform = `translate(${rotateHandleX}, ${rotateHandleY}) scale(${inverseScale}) translate(${-rotateHandleX}, ${-rotateHandleY})`;
+            rotateHandle.setAttribute('transform', transform);
+        }
         rotateHandle.classList.add('handle', 'handle-rotate');
         rotateHandle.dataset.handleType = 'rotate';
         rotateHandle.dataset.handleData = 'rotation';
@@ -197,8 +215,15 @@ class Selection {
         rotateHandle.setAttribute('cy', rotateHandleY);
         rotateHandle.setAttribute('r', 5);
         rotateHandle.setAttribute('fill', '#4a90d9');
+        rotateHandle.setAttribute('fill-opacity', '0.5');
         rotateHandle.setAttribute('stroke', '#ffffff');
         rotateHandle.setAttribute('stroke-width', '1');
+        if (typeof window.getZoomScale === 'function') {
+            const inverseScale = 1 / window.getZoomScale();
+            // Scale around the circle's center: translate to origin, scale, translate back
+            const transform = `translate(${rotateHandleX}, ${rotateHandleY}) scale(${inverseScale}) translate(${-rotateHandleX}, ${-rotateHandleY})`;
+            rotateHandle.setAttribute('transform', transform);
+        }
         rotateHandle.classList.add('handle', 'handle-rotate');
         rotateHandle.dataset.handleType = 'rotate';
         rotateHandle.dataset.handleData = 'rotation';
@@ -289,9 +314,16 @@ class Selection {
         handle.setAttribute('cx', x);
         handle.setAttribute('cy', y);
         handle.setAttribute('r', 4);
-        handle.setAttribute('fill', '#ffffff');
+        handle.setAttribute('fill', '#4a90d9');
+        handle.setAttribute('fill-opacity', '0.5');
         handle.setAttribute('stroke', '#4a90d9');
         handle.setAttribute('stroke-width', '1');
+        if (typeof window.getZoomScale === 'function') {
+            const inverseScale = 1 / window.getZoomScale();
+            // Scale around the circle's center: translate to origin, scale, translate back
+            const transform = `translate(${x}, ${y}) scale(${inverseScale}) translate(${-x}, ${-y})`;
+            handle.setAttribute('transform', transform);
+        }
         handle.classList.add('handle', `handle-${type}`);
         handle.dataset.handleData = data;
         handle.dataset.handleType = type;
@@ -307,6 +339,7 @@ class Selection {
         line.setAttribute('y2', y2);
         line.setAttribute('stroke', '#4a90d9');
         line.setAttribute('stroke-width', '1');
+        line.classList.add('handle-line');
         line.style.pointerEvents = 'none';
         this.handlesLayer.appendChild(line);
     }
@@ -320,8 +353,15 @@ class Selection {
         handle.setAttribute('width', this.handleSize);
         handle.setAttribute('height', this.handleSize);
         handle.setAttribute('fill', '#4a90d9');
+        handle.setAttribute('fill-opacity', '0.5');
         handle.setAttribute('stroke', '#ffffff');
         handle.setAttribute('stroke-width', '1');
+        if (typeof window.getZoomScale === 'function') {
+            const inverseScale = 1 / window.getZoomScale();
+            // Scale around the handle's center: translate to center, scale, translate back
+            const transform = `translate(${x}, ${y}) scale(${inverseScale}) translate(${-x}, ${-y})`;
+            handle.setAttribute('transform', transform);
+        }
         handle.classList.add('handle', `handle-${type}`);
         handle.dataset.handleData = data;
         handle.dataset.handleType = type;
@@ -329,6 +369,7 @@ class Selection {
 
         return handle;
     }
+
 
     getCursor(data, type) {
         if (type === 'point') return 'move';
@@ -378,7 +419,10 @@ class Selection {
     }
 
     clear() {
-        this.handlesLayer.innerHTML = '';
+        // Only remove selection-related elements, not tool preview elements
+        const selectorsToRemove = '.handle, .handle-line, .rotation-line, .selection-outline';
+        const elementsToRemove = this.handlesLayer.querySelectorAll(selectorsToRemove);
+        elementsToRemove.forEach(el => el.remove());
     }
 
     selectPoint(index) {

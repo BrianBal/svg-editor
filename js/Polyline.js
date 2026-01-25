@@ -15,49 +15,25 @@ class Polyline extends PointBasedShape {
                 readonly: true,
                 get: (shape) => shape.points.length
             },
-            addPoint: {
-                type: 'button',
-                label: 'Add Point',
+            closed: {
+                type: 'checkbox',
+                label: 'Closed Path',
                 group: 'polyline',
-                action: (shape) => {
-                    const canvas = window.app?.canvas;
-                    if (canvas) {
-                        const selectedIndex = canvas.selection.getSelectedPointIndex();
-                        if (selectedIndex !== null && selectedIndex < shape.points.length - 1) {
-                            shape.addPointBetween(selectedIndex);
-                        } else if (shape.points.length >= 2) {
-                            shape.addPointBetween(shape.points.length - 2);
-                        }
-                    }
-                }
-            },
-            removePoint: {
-                type: 'button',
-                label: 'Remove Point',
-                group: 'polyline',
-                action: (shape) => {
-                    const canvas = window.app?.canvas;
-                    if (canvas) {
-                        const selectedIndex = canvas.selection.getSelectedPointIndex();
-                        if (selectedIndex !== null) {
-                            if (shape.removePoint(selectedIndex)) {
-                                canvas.selection.selectPoint(null);
-                            }
-                        } else {
-                            shape.removeLastPoint();
-                        }
-                    }
-                }
+                get: (shape) => shape.closed,
+                set: (shape, value) => shape.setClosed(value)
             },
         };
     }
 
     constructor(points = []) {
         super('polyline', points);
+        this.closed = false;
     }
 
     createSVGElement() {
-        const el = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        // Use polygon for closed shapes, polyline for open shapes
+        const elementType = this.closed ? 'polygon' : 'polyline';
+        const el = document.createElementNS('http://www.w3.org/2000/svg', elementType);
         el.setAttribute('id', this.id);
         el.setAttribute('points', this.getPointsString());
         this.applyAttributes(el);
@@ -71,8 +47,27 @@ class Polyline extends PointBasedShape {
 
     updateElement() {
         if (this.element) {
-            this.element.setAttribute('points', this.getPointsString());
-            this.applyTransform(this.element);
+            // If closed state changed, need to recreate element (polyline vs polygon)
+            const currentType = this.element.tagName.toLowerCase();
+            const expectedType = this.closed ? 'polygon' : 'polyline';
+
+            if (currentType !== expectedType) {
+                // Recreate element with correct type
+                const parent = this.element.parentNode;
+                if (parent) {
+                    const oldElement = this.element;
+                    const newElement = this.createSVGElement();
+                    // Insert new element before old one, then remove old
+                    parent.insertBefore(newElement, oldElement);
+                    oldElement.remove();
+                } else {
+                    // Element not in DOM yet, just recreate it
+                    this.element = this.createSVGElement();
+                }
+            } else {
+                this.element.setAttribute('points', this.getPointsString());
+                this.applyTransform(this.element);
+            }
         }
     }
 
@@ -111,7 +106,24 @@ class Polyline extends PointBasedShape {
     clone(offset = 10) {
         const offsetPoints = this.points.map(p => ({ x: p.x + offset, y: p.y + offset }));
         const copy = new Polyline(offsetPoints);
+        copy.closed = this.closed;
         this.copyAttributesTo(copy);
         return copy;
+    }
+
+    setClosed(closed) {
+        if (this.closed !== closed) {
+            this.closed = closed;
+            this.updateElement();
+            eventBus.emit('shape:updated', this);
+        }
+    }
+
+    isNearFirstPoint(x, y, threshold = 15) {
+        if (this.points.length === 0) return false;
+        const first = this.points[0];
+        const dx = x - first.x;
+        const dy = y - first.y;
+        return Math.sqrt(dx * dx + dy * dy) < threshold;
     }
 }

@@ -20,7 +20,8 @@ describe('SelectTool - Multi-Select', () => {
     beforeEach(() => {
         mockCanvas = {
             selection: {
-                updateHandles: vi.fn()
+                updateHandles: vi.fn(),
+                setDragging: vi.fn()
             }
         };
 

@@ -64,30 +64,97 @@ class SVGLoader {
     }
 
     parseShapes(svgElement) {
-        svgElement.querySelectorAll('rect').forEach(rect => {
+        // Find the container with shapes
+        // Check if shapes are in a <g id="shapes-layer"> (typical save format)
+        // or as direct children of <svg> (imported/manually edited SVGs)
+        const shapesLayer = svgElement.querySelector('#shapes-layer');
+        const container = shapesLayer || svgElement;
+
+        // Iterate through children in document order
+        const children = Array.from(container.children);
+
+        for (const element of children) {
+            const tagName = element.tagName.toLowerCase();
+
+            // Skip non-shape elements
+            if (tagName === 'defs' || tagName === 'g') continue;
+
+            // Parse shape based on tag name
+            switch (tagName) {
+                case 'rect':
+                    this.parseRect(element);
+                    break;
+                case 'polyline':
+                    this.parsePolyline(element);
+                    break;
+                case 'polygon':
+                    this.parsePolygon(element);
+                    break;
+                case 'line':
+                    this.parseLine(element);
+                    break;
+                case 'path':
+                    this.parsePath(element);
+                    break;
+            }
+        }
+    }
+
+    parseRect(rect) {
+        const shape = new Rectangle(
+            parseFloat(rect.getAttribute('x')) || 0,
+            parseFloat(rect.getAttribute('y')) || 0,
+            parseFloat(rect.getAttribute('width')) || 100,
+            parseFloat(rect.getAttribute('height')) || 100
+        );
+
+        // Handle corner radius
+        const rx = rect.getAttribute('rx');
+        if (rx) {
+            shape.rx = parseFloat(rx);
+        }
+
+        this.applyCommonAttributes(shape, rect);
+        this.canvas.addShape(shape);
+    }
+
+    parsePolyline(polyline) {
+        const pointsStr = polyline.getAttribute('points') || '';
+        const points = this.parsePointsString(pointsStr);
+
+        if (points.length >= 2) {
+            const shape = new Polyline(points);
+            this.applyCommonAttributes(shape, polyline);
+            this.canvas.addShape(shape);
+        }
+    }
+
+    parsePolygon(polygon) {
+        // Check if this is a tilted rectangle
+        if (polygon.getAttribute('data-is-rectangle') === 'true') {
             const shape = new Rectangle(
-                parseFloat(rect.getAttribute('x')) || 0,
-                parseFloat(rect.getAttribute('y')) || 0,
-                parseFloat(rect.getAttribute('width')) || 100,
-                parseFloat(rect.getAttribute('height')) || 100
+                parseFloat(polygon.getAttribute('data-rect-x')) || 0,
+                parseFloat(polygon.getAttribute('data-rect-y')) || 0,
+                parseFloat(polygon.getAttribute('data-rect-width')) || 100,
+                parseFloat(polygon.getAttribute('data-rect-height')) || 100
             );
 
-            this.applyCommonAttributes(shape, rect);
-            this.canvas.addShape(shape);
-        });
+            // Restore tilt values
+            shape.tiltTop = parseFloat(polygon.getAttribute('data-tilt-top')) || 0;
+            shape.tiltBottom = parseFloat(polygon.getAttribute('data-tilt-bottom')) || 0;
+            shape.tiltLeft = parseFloat(polygon.getAttribute('data-tilt-left')) || 0;
+            shape.tiltRight = parseFloat(polygon.getAttribute('data-tilt-right')) || 0;
 
-        svgElement.querySelectorAll('polyline').forEach(polyline => {
-            const pointsStr = polyline.getAttribute('points') || '';
-            const points = this.parsePointsString(pointsStr);
-
-            if (points.length >= 2) {
-                const shape = new Polyline(points);
-                this.applyCommonAttributes(shape, polyline);
-                this.canvas.addShape(shape);
+            // Restore corner radius if present
+            const cornerRadius = polygon.getAttribute('data-corner-radius');
+            if (cornerRadius) {
+                shape.rx = parseFloat(cornerRadius);
             }
-        });
 
-        svgElement.querySelectorAll('polygon').forEach(polygon => {
+            this.applyCommonAttributes(shape, polygon);
+            this.canvas.addShape(shape);
+        } else {
+            // Regular polygon - parse as polyline
             const pointsStr = polygon.getAttribute('points') || '';
             const points = this.parsePointsString(pointsStr);
 
@@ -98,31 +165,31 @@ class SVGLoader {
                 this.applyCommonAttributes(shape, polygon);
                 this.canvas.addShape(shape);
             }
-        });
+        }
+    }
 
-        svgElement.querySelectorAll('line').forEach(line => {
-            const points = [
-                { x: parseFloat(line.getAttribute('x1')) || 0, y: parseFloat(line.getAttribute('y1')) || 0 },
-                { x: parseFloat(line.getAttribute('x2')) || 0, y: parseFloat(line.getAttribute('y2')) || 0 }
-            ];
+    parseLine(line) {
+        const points = [
+            { x: parseFloat(line.getAttribute('x1')) || 0, y: parseFloat(line.getAttribute('y1')) || 0 },
+            { x: parseFloat(line.getAttribute('x2')) || 0, y: parseFloat(line.getAttribute('y2')) || 0 }
+        ];
 
-            const shape = new Polyline(points);
-            this.applyCommonAttributes(shape, line);
+        const shape = new Polyline(points);
+        this.applyCommonAttributes(shape, line);
+        this.canvas.addShape(shape);
+    }
+
+    parsePath(pathEl) {
+        const d = pathEl.getAttribute('d');
+        if (!d) return;
+
+        const points = this.parsePathData(d);
+        if (points.length >= 2) {
+            const closed = d.toUpperCase().includes('Z');
+            const shape = new Path(points, closed);
+            this.applyCommonAttributes(shape, pathEl);
             this.canvas.addShape(shape);
-        });
-
-        svgElement.querySelectorAll('path').forEach(pathEl => {
-            const d = pathEl.getAttribute('d');
-            if (!d) return;
-
-            const points = this.parsePathData(d);
-            if (points.length >= 2) {
-                const closed = d.toUpperCase().includes('Z');
-                const shape = new Path(points, closed);
-                this.applyCommonAttributes(shape, pathEl);
-                this.canvas.addShape(shape);
-            }
-        });
+        }
     }
 
     /**
@@ -273,6 +340,12 @@ class SVGLoader {
         // Explicitly handle missing attributes - set to 'none' if not present
         shape.stroke = stroke || 'none';
         if (strokeWidth) shape.strokeWidth = parseFloat(strokeWidth);
+
+        // Parse opacity attribute (0-1 in SVG, 0-100 in app)
+        const opacity = element.getAttribute('opacity');
+        if (opacity) {
+            shape.opacity = parseFloat(opacity) * 100;
+        }
 
         // Handle fill - check for gradient reference
         if (fill && fill.startsWith('url(#')) {

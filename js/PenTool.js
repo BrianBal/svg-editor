@@ -16,9 +16,8 @@ class PenTool {
     }
 
     onMouseDown(e, pos) {
-        // Ignore clicks on handles or existing shapes
+        // Ignore clicks on handles
         if (e.target.classList.contains('handle')) return;
-        if (e.target.dataset.shapeId) return;
 
         if (!this.isDrawing) {
             // Start a new path

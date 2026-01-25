@@ -484,18 +484,6 @@ describe('Path', () => {
             expect(path.closed).toBe(true);
             expect(emitSpy).toHaveBeenCalledWith('shape:updated', path);
         });
-
-        it('has addPoint button', () => {
-            const props = Path.properties;
-            expect(props.addPoint).toBeDefined();
-            expect(props.addPoint.type).toBe('button');
-        });
-
-        it('has removePoint button', () => {
-            const props = Path.properties;
-            expect(props.removePoint).toBeDefined();
-            expect(props.removePoint.type).toBe('button');
-        });
     });
 
     describe('serialization round-trip', () => {

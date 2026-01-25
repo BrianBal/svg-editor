@@ -31,7 +31,12 @@ class App {
         this.commandPalette = new CommandPalette();
 
         this.zoom = 100;
+        this.currentZoomScale = 1.0;
         this.setupZoomControls();
+
+        // Expose zoom scale globally for Selection handles
+        window.getZoomScale = () => this.currentZoomScale;
+
         this.setupKeyboardShortcuts();
         this.setupFileManagement();
 
@@ -112,6 +117,7 @@ class App {
             zoomValue.textContent = `${this.zoom}%`;
 
             const scale = this.zoom / 100;
+            this.currentZoomScale = scale;
 
             // Set explicit dimensions on container to match SVG (ensures background scales correctly)
             canvasContainer.style.width = appState.svgWidth + 'px';

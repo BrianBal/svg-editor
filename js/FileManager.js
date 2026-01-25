@@ -111,94 +111,135 @@ class FileManager {
             });
         }
 
-        svgElement.querySelectorAll('rect').forEach(rect => {
-            // Skip canvas background rect
-            if (rect.getAttribute('id') === 'canvas-background') {
-                return;
+        // Find the container with shapes
+        // Check if shapes are in a <g id="shapes-layer"> (typical save format)
+        // or as direct children of <svg> (imported/manually edited SVGs)
+        const shapesLayer = svgElement.querySelector('#shapes-layer');
+        const container = shapesLayer || svgElement;
+
+        // Iterate through children in document order
+        const children = Array.from(container.children);
+
+        for (const element of children) {
+            const tagName = element.tagName.toLowerCase();
+
+            // Skip non-shape elements
+            if (tagName === 'defs' || tagName === 'g') continue;
+
+            // Parse shape based on tag name
+            switch (tagName) {
+                case 'rect':
+                    this.parseRect(element);
+                    break;
+                case 'ellipse':
+                    this.parseEllipse(element);
+                    break;
+                case 'line':
+                    this.parseLine(element);
+                    break;
+                case 'polyline':
+                    this.parsePolyline(element);
+                    break;
+                case 'polygon':
+                    this.parsePolygon(element);
+                    break;
+                case 'text':
+                    this.parseText(element);
+                    break;
+                case 'path':
+                    this.parsePath(element);
+                    break;
             }
-            const shape = new Rectangle(
-                parseFloat(rect.getAttribute('x')) || 0,
-                parseFloat(rect.getAttribute('y')) || 0,
-                parseFloat(rect.getAttribute('width')) || 100,
-                parseFloat(rect.getAttribute('height')) || 100
-            );
-            // Parse corner radius
-            const rx = parseFloat(rect.getAttribute('rx'));
-            if (rx) shape.rx = rx;
-            this.applyCommonAttributes(shape, rect);
+        }
+    }
+
+    parseRect(rect) {
+        // Skip canvas background rect
+        if (rect.getAttribute('id') === 'canvas-background') {
+            return;
+        }
+        const shape = new Rectangle(
+            parseFloat(rect.getAttribute('x')) || 0,
+            parseFloat(rect.getAttribute('y')) || 0,
+            parseFloat(rect.getAttribute('width')) || 100,
+            parseFloat(rect.getAttribute('height')) || 100
+        );
+        // Parse corner radius
+        const rx = parseFloat(rect.getAttribute('rx'));
+        if (rx) shape.rx = rx;
+        this.applyCommonAttributes(shape, rect);
+        this.canvas.addShape(shape);
+    }
+
+    parseEllipse(ellipse) {
+        const shape = new Ellipse(
+            parseFloat(ellipse.getAttribute('cx')) || 0,
+            parseFloat(ellipse.getAttribute('cy')) || 0,
+            parseFloat(ellipse.getAttribute('rx')) || 50,
+            parseFloat(ellipse.getAttribute('ry')) || 50
+        );
+        this.applyCommonAttributes(shape, ellipse);
+        this.canvas.addShape(shape);
+    }
+
+    parseLine(line) {
+        const shape = new Line(
+            parseFloat(line.getAttribute('x1')) || 0,
+            parseFloat(line.getAttribute('y1')) || 0,
+            parseFloat(line.getAttribute('x2')) || 100,
+            parseFloat(line.getAttribute('y2')) || 100
+        );
+        this.applyCommonAttributes(shape, line);
+        this.canvas.addShape(shape);
+    }
+
+    parsePolyline(polyline) {
+        const pointsStr = polyline.getAttribute('points') || '';
+        const points = this.parsePointsString(pointsStr);
+        if (points.length >= 2) {
+            const shape = new Polyline(points);
+            this.applyCommonAttributes(shape, polyline);
             this.canvas.addShape(shape);
-        });
+        }
+    }
 
-        svgElement.querySelectorAll('ellipse').forEach(ellipse => {
-            const shape = new Ellipse(
-                parseFloat(ellipse.getAttribute('cx')) || 0,
-                parseFloat(ellipse.getAttribute('cy')) || 0,
-                parseFloat(ellipse.getAttribute('rx')) || 50,
-                parseFloat(ellipse.getAttribute('ry')) || 50
-            );
-            this.applyCommonAttributes(shape, ellipse);
+    parsePolygon(polygon) {
+        const pointsStr = polygon.getAttribute('points') || '';
+        const points = this.parsePointsString(pointsStr);
+        if (points.length >= 2) {
+            // Close the polygon by duplicating the first point at the end
+            points.push({ ...points[0] });
+            const shape = new Polyline(points);
+            this.applyCommonAttributes(shape, polygon);
             this.canvas.addShape(shape);
-        });
+        }
+    }
 
-        svgElement.querySelectorAll('polyline').forEach(polyline => {
-            const pointsStr = polyline.getAttribute('points') || '';
-            const points = this.parsePointsString(pointsStr);
-            if (points.length >= 2) {
-                const shape = new Polyline(points);
-                this.applyCommonAttributes(shape, polyline);
-                this.canvas.addShape(shape);
-            }
-        });
+    parseText(text) {
+        const fontSize = parseFloat(text.getAttribute('font-size')) || 24;
+        const fontFamily = text.getAttribute('font-family') || 'Arial';
+        const shape = new TextShape(
+            parseFloat(text.getAttribute('x')) || 0,
+            parseFloat(text.getAttribute('y')) || 0,
+            text.textContent || 'Text',
+            fontSize,
+            fontFamily
+        );
+        this.applyCommonAttributes(shape, text);
+        this.canvas.addShape(shape);
+    }
 
-        svgElement.querySelectorAll('polygon').forEach(polygon => {
-            const pointsStr = polygon.getAttribute('points') || '';
-            const points = this.parsePointsString(pointsStr);
-            if (points.length >= 2) {
-                // Close the polygon by duplicating the first point at the end
-                points.push({ ...points[0] });
-                const shape = new Polyline(points);
-                this.applyCommonAttributes(shape, polygon);
-                this.canvas.addShape(shape);
-            }
-        });
+    parsePath(pathEl) {
+        const d = pathEl.getAttribute('d');
+        if (!d) return;
 
-        svgElement.querySelectorAll('line').forEach(line => {
-            const shape = new Line(
-                parseFloat(line.getAttribute('x1')) || 0,
-                parseFloat(line.getAttribute('y1')) || 0,
-                parseFloat(line.getAttribute('x2')) || 100,
-                parseFloat(line.getAttribute('y2')) || 100
-            );
-            this.applyCommonAttributes(shape, line);
+        const points = this.parsePathData(d);
+        if (points.length >= 2) {
+            const closed = d.toUpperCase().includes('Z');
+            const shape = new Path(points, closed);
+            this.applyCommonAttributes(shape, pathEl);
             this.canvas.addShape(shape);
-        });
-
-        svgElement.querySelectorAll('text').forEach(text => {
-            const fontSize = parseFloat(text.getAttribute('font-size')) || 24;
-            const fontFamily = text.getAttribute('font-family') || 'Arial';
-            const shape = new TextShape(
-                parseFloat(text.getAttribute('x')) || 0,
-                parseFloat(text.getAttribute('y')) || 0,
-                text.textContent || 'Text',
-                fontSize,
-                fontFamily
-            );
-            this.applyCommonAttributes(shape, text);
-            this.canvas.addShape(shape);
-        });
-
-        svgElement.querySelectorAll('path').forEach(pathEl => {
-            const d = pathEl.getAttribute('d');
-            if (!d) return;
-
-            const points = this.parsePathData(d);
-            if (points.length >= 2) {
-                const closed = d.toUpperCase().includes('Z');
-                const shape = new Path(points, closed);
-                this.applyCommonAttributes(shape, pathEl);
-                this.canvas.addShape(shape);
-            }
-        });
+        }
     }
 
     parsePathData(d) {
@@ -333,6 +374,12 @@ class FileManager {
 
         shape.stroke = stroke || 'none';
         if (strokeWidth) shape.strokeWidth = parseFloat(strokeWidth);
+
+        // Parse opacity attribute (0-1 in SVG, 0-100 in app)
+        const opacity = element.getAttribute('opacity');
+        if (opacity) {
+            shape.opacity = parseFloat(opacity) * 100;
+        }
 
         // Handle fill - check if it's a gradient reference
         if (fill && fill.startsWith('url(#')) {

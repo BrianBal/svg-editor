@@ -48,6 +48,8 @@ class SVGCanvas {
     setTools(tools) {
         this.tools = tools;
         this.activeTool = this.tools.select;
+        // Set initial cursor for select tool
+        this.svg.classList.add('tool-select');
     }
 
     setupEventListeners() {
@@ -142,6 +144,8 @@ class SVGCanvas {
                 }
             }
 
+            this.selection.setDragging(true);
+
             if (this.activeHandle.type === 'point') {
                 this.selection.selectPoint(parseInt(this.activeHandle.data));
             }
@@ -179,6 +183,7 @@ class SVGCanvas {
             }
         }
 
+        this.selection.setDragging(false);
         this.isDragging = false;
         this.activeHandle = null;
         this.originalCombinedBounds = null;
@@ -248,6 +253,7 @@ class SVGCanvas {
 
         shape.setRotation(angle);
     }
+
 
     handleBoundsResize(shape, pos) {
         const bounds = shape.getBounds();
@@ -410,6 +416,7 @@ class SVGCanvas {
 
         this.selection.updateHandles();
     }
+
 
     handlePolylinePointMove(shape, pos) {
         const pointIndex = parseInt(this.activeHandle.data);

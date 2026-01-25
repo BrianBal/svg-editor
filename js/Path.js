@@ -29,41 +29,7 @@ class Path extends PointBasedShape {
                     shape.updateElement();
                     eventBus.emit('shape:updated', shape);
                 }
-            },
-            addPoint: {
-                type: 'button',
-                label: 'Add Point',
-                group: 'path',
-                action: (shape) => {
-                    const canvas = window.app?.canvas;
-                    if (canvas) {
-                        const selectedIndex = canvas.selection.getSelectedPointIndex();
-                        if (selectedIndex !== null && selectedIndex < shape.points.length - 1) {
-                            shape.addPointBetween(selectedIndex);
-                        } else if (shape.points.length >= 2) {
-                            shape.addPointBetween(shape.points.length - 2);
-                        }
-                    }
-                }
-            },
-            removePoint: {
-                type: 'button',
-                label: 'Remove Point',
-                group: 'path',
-                action: (shape) => {
-                    const canvas = window.app?.canvas;
-                    if (canvas) {
-                        const selectedIndex = canvas.selection.getSelectedPointIndex();
-                        if (selectedIndex !== null) {
-                            if (shape.removePoint(selectedIndex)) {
-                                canvas.selection.selectPoint(null);
-                            }
-                        } else {
-                            shape.removeLastPoint();
-                        }
-                    }
-                }
-            },
+            }
         };
     }
 

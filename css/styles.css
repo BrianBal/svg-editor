@@ -822,9 +822,23 @@ html, body {
     cursor: move;
 }
 
+.handle-skew {
+    cursor: ns-resize;
+}
+
+.handle-tilt {
+    cursor: row-resize;
+}
+
 /* Shape styling */
-[data-shape-id] {
+/* Only show pointer cursor on shapes when in select mode */
+#svg-canvas.tool-select [data-shape-id] {
     cursor: pointer;
+}
+
+/* Keep crosshair on shapes when not in select mode */
+#svg-canvas:not(.tool-select) [data-shape-id] {
+    cursor: crosshair;
 }
 
 [data-shape-id]:hover {

@@ -132,14 +132,15 @@ describe('PenTool', () => {
             expect(penTool.currentPath).toBeNull();
         });
 
-        it('ignores clicks on existing shapes', () => {
+        it('can draw on top of existing shapes', () => {
             const shape = document.createElement('div');
             shape.dataset.shapeId = 'shape-1';
 
             penTool.onMouseDown(createMouseEvent('mousedown', { x: 100, y: 100 }, shape), { x: 100, y: 100 });
 
-            expect(penTool.isDrawing).toBe(false);
-            expect(penTool.currentPath).toBeNull();
+            // Should start drawing even when clicking on existing shape
+            expect(penTool.isDrawing).toBe(true);
+            expect(penTool.currentPath).toBeInstanceOf(Path);
         });
     });
 
@@ -301,6 +302,60 @@ describe('PenTool', () => {
             penTool.onDoubleClick(createMouseEvent('dblclick', { x: 100, y: 100 }), { x: 100, y: 100 });
 
             expect(mockCanvas.removeShape).toHaveBeenCalled();
+        });
+    });
+
+    describe('tool switching cleanup', () => {
+        it('cancels drawing when switching to another tool', () => {
+            // Start drawing a path
+            penTool.onMouseDown(createMouseEvent('mousedown', { x: 100, y: 100 }), { x: 100, y: 100 });
+            penTool.onMouseUp(createMouseEvent('mouseup', { x: 100, y: 100 }), { x: 100, y: 100 });
+
+            expect(penTool.isDrawing).toBe(true);
+            expect(penTool.currentPath).not.toBeNull();
+            expect(penTool.previewPath).not.toBeNull();
+
+            // Simulate what SVGCanvas does when switching tools
+            penTool.cancel();
+
+            // Verify state was cleaned up
+            expect(penTool.isDrawing).toBe(false);
+            expect(penTool.currentPath).toBeNull();
+            expect(penTool.previewPath).toBeNull();
+            expect(mockCanvas.removeShape).toHaveBeenCalled();
+        });
+
+        it('cleans up preview path DOM element when switching tools', () => {
+            penTool.onMouseDown(createMouseEvent('mousedown', { x: 100, y: 100 }), { x: 100, y: 100 });
+
+            const previewElement = penTool.previewPath;
+            expect(mockCanvas.handlesLayer.contains(previewElement)).toBe(true);
+
+            // Simulate tool switch cleanup
+            penTool.cancel();
+
+            // Preview should be removed from DOM
+            expect(mockCanvas.handlesLayer.contains(previewElement)).toBe(false);
+        });
+
+        it('removes close indicator when switching tools', () => {
+            // Create path with 2 points to enable close indicator
+            penTool.onMouseDown(createMouseEvent('mousedown', { x: 100, y: 100 }), { x: 100, y: 100 });
+            penTool.onMouseUp(createMouseEvent('mouseup', { x: 100, y: 100 }), { x: 100, y: 100 });
+
+            penTool.onMouseDown(createMouseEvent('mousedown', { x: 200, y: 200 }), { x: 200, y: 200 });
+            penTool.onMouseUp(createMouseEvent('mouseup', { x: 200, y: 200 }), { x: 200, y: 200 });
+
+            // Move near first point to trigger close indicator
+            penTool.onMouseMove(createMouseEvent('mousemove', { x: 105, y: 105 }), { x: 105, y: 105 });
+
+            expect(penTool.closeIndicator).not.toBeNull();
+
+            // Simulate tool switch cleanup
+            penTool.cancel();
+
+            // Close indicator should be removed
+            expect(penTool.closeIndicator).toBeNull();
         });
     });
 });

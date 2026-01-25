@@ -200,6 +200,74 @@ class CommandPalette {
             }
         );
 
+        // ISO preset commands (require 1+ shape selected)
+        this.commands.push(
+            {
+                id: 'iso:top',
+                label: 'Iso Top',
+                shortcut: null,
+                action: () => this.applyIsoPreset('top'),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            },
+            {
+                id: 'iso:left',
+                label: 'Iso Left',
+                shortcut: null,
+                action: () => this.applyIsoPreset('left'),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            },
+            {
+                id: 'iso:right',
+                label: 'Iso Right',
+                shortcut: null,
+                action: () => this.applyIsoPreset('right'),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            },
+            {
+                id: 'iso:front',
+                label: 'Iso Front',
+                shortcut: null,
+                action: () => this.applyIsoPreset('front'),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            }
+        );
+
+        // Transform reset commands (require 1+ shape selected)
+        this.commands.push(
+            {
+                id: 'transform:reset-3d',
+                label: 'Reset 3D',
+                shortcut: null,
+                action: () => this.resetPerspective(),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            },
+            {
+                id: 'transform:reset-all',
+                label: 'Reset All',
+                shortcut: null,
+                action: () => this.resetAllTransforms(),
+                isAvailable: () => appState.selectedShapeIds.length > 0
+            }
+        );
+
+        // Point editing commands (require polyline/path selected)
+        this.commands.push(
+            {
+                id: 'edit:add-point',
+                label: 'Add Point',
+                shortcut: null,
+                action: () => this.addPoint(),
+                isAvailable: () => this.isPointBasedShapeSelected()
+            },
+            {
+                id: 'edit:remove-point',
+                label: 'Remove Point',
+                shortcut: null,
+                action: () => this.removePoint(),
+                isAvailable: () => this.isPointBasedShapeSelected()
+            }
+        );
+
         // File operations
         this.commands.push(
             {
@@ -658,6 +726,187 @@ class CommandPalette {
         }
 
         window.app.canvas.selection.updateHandles();
+    }
+
+    applyIsoPreset(preset) {
+        const shapes = appState.getSelectedShapes();
+
+        if (shapes.length === 1) {
+            historyManager.beginTransaction('property', shapes[0].id);
+        } else {
+            historyManager.beginMultiTransaction('property', shapes.map(s => s.id));
+        }
+
+        shapes.forEach(shape => {
+            switch (preset) {
+                case 'top':
+                    // Diamond shape for isometric top face
+                    shape.setRotation(45);
+                    shape.scaleY = 0.577; // cos(60°) ≈ 0.577
+                    shape.setSkewX(0);
+                    shape.setSkewY(0);
+                    break;
+                case 'left':
+                    // Parallelogram for isometric left face
+                    shape.setRotation(0);
+                    shape.scaleY = 1;
+                    shape.setSkewX(0);
+                    shape.setSkewY(30);
+                    break;
+                case 'right':
+                    // Parallelogram for isometric right face
+                    shape.setRotation(0);
+                    shape.scaleY = 1;
+                    shape.setSkewX(0);
+                    shape.setSkewY(-30);
+                    break;
+                case 'front':
+                    // Trapezoid with perspective (only for rectangles)
+                    shape.setRotation(0);
+                    shape.scaleY = 1;
+                    shape.setSkewX(0);
+                    shape.setSkewY(0);
+                    if (shape.type === 'rectangle') {
+                        shape.setTiltTop(40);
+                        shape.setTiltLeft(30);
+                        shape.setTiltRight(30);
+                        shape.setTiltBottom(0);
+                    }
+                    break;
+            }
+            if (shape.element) {
+                shape.applyTransform(shape.element);
+            }
+            eventBus.emit('shape:updated', shape);
+        });
+
+        if (shapes.length === 1) {
+            historyManager.endTransaction();
+        } else {
+            historyManager.endMultiTransaction();
+        }
+
+        window.app.canvas.selection.updateHandles();
+    }
+
+    resetPerspective() {
+        const shapes = appState.getSelectedShapes();
+
+        if (shapes.length === 1) {
+            historyManager.beginTransaction('property', shapes[0].id);
+        } else {
+            historyManager.beginMultiTransaction('property', shapes.map(s => s.id));
+        }
+
+        shapes.forEach(shape => {
+            shape.setRotateX(0);
+            shape.setRotateY(0);
+            shape.setPerspective(1000);
+            if (shape.element) {
+                shape.applyTransform(shape.element);
+            }
+            eventBus.emit('shape:updated', shape);
+        });
+
+        if (shapes.length === 1) {
+            historyManager.endTransaction();
+        } else {
+            historyManager.endMultiTransaction();
+        }
+
+        window.app.canvas.selection.updateHandles();
+    }
+
+    resetAllTransforms() {
+        const shapes = appState.getSelectedShapes();
+
+        if (shapes.length === 1) {
+            historyManager.beginTransaction('property', shapes[0].id);
+        } else {
+            historyManager.beginMultiTransaction('property', shapes.map(s => s.id));
+        }
+
+        shapes.forEach(shape => {
+            // Reset all transforms
+            shape.setRotation(0);
+            shape.scaleX = 1;
+            shape.scaleY = 1;
+            shape.setSkewX(0);
+            shape.setSkewY(0);
+            shape.setRotateX(0);
+            shape.setRotateY(0);
+            shape.setPerspective(1000);
+
+            // For rectangles, also reset tilt
+            if (shape.type === 'rectangle') {
+                shape.setTiltTop(0);
+                shape.setTiltBottom(0);
+                shape.setTiltLeft(0);
+                shape.setTiltRight(0);
+            }
+
+            if (shape.element) {
+                shape.applyTransform(shape.element);
+            }
+            eventBus.emit('shape:updated', shape);
+        });
+
+        if (shapes.length === 1) {
+            historyManager.endTransaction();
+        } else {
+            historyManager.endMultiTransaction();
+        }
+
+        window.app.canvas.selection.updateHandles();
+    }
+
+    addPoint() {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length !== 1) return;
+
+        const shape = shapes[0];
+        if (shape.type !== 'polyline' && shape.type !== 'path') return;
+
+        const canvas = window.app?.canvas;
+        if (!canvas) return;
+
+        const selectedIndex = canvas.selection.getSelectedPointIndex();
+        if (selectedIndex !== null && selectedIndex < shape.points.length - 1) {
+            shape.addPointBetween(selectedIndex);
+        } else if (shape.points.length >= 2) {
+            shape.addPointBetween(shape.points.length - 2);
+        }
+
+        canvas.selection.updateHandles();
+    }
+
+    removePoint() {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length !== 1) return;
+
+        const shape = shapes[0];
+        if (shape.type !== 'polyline' && shape.type !== 'path') return;
+
+        const canvas = window.app?.canvas;
+        if (!canvas) return;
+
+        const selectedIndex = canvas.selection.getSelectedPointIndex();
+        if (selectedIndex !== null) {
+            if (shape.removePoint(selectedIndex)) {
+                canvas.selection.selectPoint(null);
+            }
+        } else {
+            shape.removeLastPoint();
+        }
+
+        canvas.selection.updateHandles();
+    }
+
+    isPointBasedShapeSelected() {
+        const shapes = appState.getSelectedShapes();
+        if (shapes.length !== 1) return false;
+        const shape = shapes[0];
+        return shape.type === 'polyline' || shape.type === 'path';
     }
 }
 

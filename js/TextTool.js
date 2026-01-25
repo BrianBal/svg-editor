@@ -5,7 +5,6 @@ class TextTool {
 
     onMouseDown(e, pos) {
         if (e.target.classList.contains('handle')) return;
-        if (e.target.dataset.shapeId) return;
 
         const text = new TextShape(pos.x, pos.y, 'Text', 24, 'Arial');
         text.stroke = appState.defaultStroke;

@@ -7,7 +7,6 @@ class LineTool {
 
     onMouseDown(e, pos) {
         if (e.target.classList.contains('handle')) return;
-        if (e.target.dataset.shapeId) return;
 
         this.currentLine = new Line(pos.x, pos.y, pos.x, pos.y);
         this.currentLine.stroke = appState.defaultStroke;

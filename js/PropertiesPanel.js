@@ -10,10 +10,10 @@ const PropertyGroups = {
     selectedPoint: { label: 'Selected Point', order: 0 },
 
     // Shape context
-    transform: { label: 'Transform', order: 1 },
-    perspective: { label: 'Perspective', order: 2 },
-    appearance: { label: 'Appearance', order: 3 },
-    stroke: { label: null, order: 4, parent: 'appearance' },
+    appearance: { label: 'Appearance', order: 1 },
+    stroke: { label: null, order: 2, parent: 'appearance' },
+    transform: { label: 'Transform', order: 3 },
+    perspective: { label: 'Perspective', order: 4 },
 
     // Shape-specific (order 10+ to appear after common groups)
     rectangle: { label: 'Rectangle', order: 10 },
@@ -176,17 +176,45 @@ const BaseShapeProperties = {
         get: (shape) => Math.round(shape.rotation || 0),
         set: (shape, value) => shape.setRotation(value)
     },
-    flipHorizontal: {
-        type: 'button',
-        label: 'Flip Horizontal',
+    scaleX: {
+        type: 'number',
+        label: 'Scale X',
         group: 'transform',
-        action: (shape) => shape.flipHorizontal()
+        suffix: '',
+        min: -10,
+        max: 10,
+        step: 0.001,
+        get: (shape) => {
+            const val = shape.scaleX !== undefined ? shape.scaleX : 1;
+            return Math.round(val * 1000) / 1000; // Round to 3 decimal places
+        },
+        set: (shape, value) => {
+            shape.scaleX = parseFloat(value);
+            if (shape.element) {
+                shape.applyTransform(shape.element);
+            }
+            eventBus.emit('shape:updated', shape);
+        }
     },
-    flipVertical: {
-        type: 'button',
-        label: 'Flip Vertical',
+    scaleY: {
+        type: 'number',
+        label: 'Scale Y',
         group: 'transform',
-        action: (shape) => shape.flipVertical()
+        suffix: '',
+        min: -10,
+        max: 10,
+        step: 0.001,
+        get: (shape) => {
+            const val = shape.scaleY !== undefined ? shape.scaleY : 1;
+            return Math.round(val * 1000) / 1000; // Round to 3 decimal places
+        },
+        set: (shape, value) => {
+            shape.scaleY = parseFloat(value);
+            if (shape.element) {
+                shape.applyTransform(shape.element);
+            }
+            eventBus.emit('shape:updated', shape);
+        }
     },
 
     // Perspective group
@@ -244,16 +272,6 @@ const BaseShapeProperties = {
         step: 50,
         get: (shape) => shape.perspective || 1000,
         set: (shape, value) => shape.setPerspective(value)
-    },
-    resetPerspective: {
-        type: 'button',
-        label: 'Reset 3D',
-        group: 'perspective',
-        action: (shape) => {
-            shape.setRotateX(0);
-            shape.setRotateY(0);
-            shape.setPerspective(1000);
-        }
     },
 
     // Appearance group
@@ -337,22 +355,7 @@ const BaseShapeProperties = {
         suffix: '%',
         get: (shape) => shape.opacity,
         set: (shape, value) => shape.setOpacity(value)
-    },
-
-    // Actions group
-    delete: {
-        type: 'button',
-        label: 'Delete Shape',
-        group: 'actions',
-        variant: 'danger',
-        action: (shape) => {
-            const canvas = window.app?.canvas;
-            if (canvas) {
-                canvas.removeShape(shape);
-                appState.deselectAll();
-            }
-        }
-    },
+    }
 };
 
 /**
@@ -915,7 +918,7 @@ class PropertiesPanel {
 
     renderTransformGroup(section, props, target) {
         // Render each transform property on its own row for better spacing
-        const order = ['x', 'y', 'width', 'height', 'rotation', 'flipHorizontal', 'flipVertical'];
+        const order = ['x', 'y', 'width', 'height', 'rotation', 'scaleX', 'scaleY', 'flipHorizontal', 'flipVertical'];
 
         for (const key of order) {
             const propData = props.find(p => p.key === key);

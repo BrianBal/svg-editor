@@ -8,7 +8,6 @@ class RectangleTool {
 
     onMouseDown(e, pos) {
         if (e.target.classList.contains('handle')) return;
-        if (e.target.dataset.shapeId) return;
 
         this.startPos = pos;
         this.currentRect = new Rectangle(pos.x, pos.y, 0, 0);

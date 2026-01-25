@@ -61,6 +61,9 @@ class LayersPanel {
                 }
 
                 this.lastClickedId = shapeId;
+
+                // Auto-switch to SelectTool when clicking a layer
+                appState.setTool('select');
             }
         });
 

@@ -286,5 +286,137 @@ describe('FileManager', () => {
             expect(shape.strokeWidth).toBe(3);
             expect(shape.fill).toBe('#00ff00');
         });
+
+        it('preserves layer order when loading shapes', () => {
+            const svgMixed = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <polyline id="shape-3" points="0,0 10,10 20,0" fill="red"/>
+                    <polyline id="shape-4" points="30,0 40,10 50,0" fill="green"/>
+                    <rect id="shape-1" x="60" y="0" width="20" height="20" fill="blue"
+                          transform="translate(70, 10) skewY(-27) translate(-70, -10)"/>
+                    <rect id="shape-2" x="90" y="0" width="20" height="20" fill="yellow"
+                          transform="translate(100, 10) skewY(26) translate(-100, -10)"/>
+                    <line id="shape-7" x1="0" y1="30" x2="100" y2="30" stroke="black"/>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgMixed, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            // Verify shapes were added in document order
+            expect(mockCanvas.addShape).toHaveBeenCalledTimes(5);
+
+            // Check that shapes were added in the correct order
+            // (polyline, polyline, rect, rect, line)
+            const calls = mockCanvas.addShape.mock.calls;
+            expect(calls[0][0].type).toBe('polyline'); // shape-3
+            expect(calls[1][0].type).toBe('polyline'); // shape-4
+            expect(calls[2][0].type).toBe('rectangle'); // shape-1
+            expect(calls[3][0].type).toBe('rectangle'); // shape-2
+            expect(calls[4][0].type).toBe('line'); // shape-7
+        });
+
+        it('preserves layer order with shapes in shapes-layer group', () => {
+            const svgWithGroup = `
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <defs></defs>
+                    <g id="shapes-layer">
+                        <ellipse cx="50" cy="50" rx="30" ry="20" fill="purple"/>
+                        <rect x="100" y="100" width="50" height="50" fill="orange"/>
+                        <polyline points="200,200 250,250 300,200" fill="cyan"/>
+                    </g>
+                </svg>
+            `;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgWithGroup, 'image/svg+xml');
+
+            fileManager.parseShapes(doc.querySelector('svg'));
+
+            // Verify shapes were added in document order from shapes-layer
+            expect(mockCanvas.addShape).toHaveBeenCalledTimes(3);
+
+            const calls = mockCanvas.addShape.mock.calls;
+            expect(calls[0][0].type).toBe('ellipse');
+            expect(calls[1][0].type).toBe('rectangle');
+            expect(calls[2][0].type).toBe('polyline');
+        });
+
+        describe('opacity preservation', () => {
+            it('preserves opacity when loading shapes', () => {
+                const svgWithOpacity = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <rect x="10" y="10" width="50" height="50" fill="red" opacity="0.5"/>
+                        <ellipse cx="100" cy="100" rx="30" ry="20" fill="blue" opacity="0.75"/>
+                        <polyline points="200,200 250,250 300,200" fill="green" opacity="0.3"/>
+                        <line x1="0" y1="300" x2="100" y2="300" stroke="black" opacity="0.6"/>
+                        <text x="200" y="300" font-size="24" opacity="0.8">Test</text>
+                        <path d="M 10 50 L 100 50" stroke="purple" opacity="0.4"/>
+                    </svg>
+                `;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgWithOpacity, 'image/svg+xml');
+
+                fileManager.parseShapes(doc.querySelector('svg'));
+
+                expect(mockCanvas.addShape).toHaveBeenCalledTimes(6);
+
+                const calls = mockCanvas.addShape.mock.calls;
+
+                // Rectangle - opacity 0.5 (50%)
+                expect(calls[0][0].type).toBe('rectangle');
+                expect(calls[0][0].opacity).toBe(50);
+
+                // Ellipse - opacity 0.75 (75%)
+                expect(calls[1][0].type).toBe('ellipse');
+                expect(calls[1][0].opacity).toBe(75);
+
+                // Polyline - opacity 0.3 (30%)
+                expect(calls[2][0].type).toBe('polyline');
+                expect(calls[2][0].opacity).toBe(30);
+
+                // Line - opacity 0.6 (60%)
+                expect(calls[3][0].type).toBe('line');
+                expect(calls[3][0].opacity).toBe(60);
+
+                // Text - opacity 0.8 (80%)
+                expect(calls[4][0].type).toBe('text');
+                expect(calls[4][0].opacity).toBe(80);
+
+                // Path - opacity 0.4 (40%)
+                expect(calls[5][0].type).toBe('path');
+                expect(calls[5][0].opacity).toBe(40);
+            });
+
+            it('defaults to 100% opacity when attribute is missing', () => {
+                const svgNoOpacity = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <rect x="10" y="10" width="50" height="50" fill="red"/>
+                    </svg>
+                `;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgNoOpacity, 'image/svg+xml');
+
+                fileManager.parseShapes(doc.querySelector('svg'));
+
+                const shape = mockCanvas.addShape.mock.calls[0][0];
+                expect(shape.opacity).toBe(100);  // Default value from Shape constructor
+            });
+
+            it('handles opacity="0" correctly', () => {
+                const svgZeroOpacity = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <rect x="10" y="10" width="50" height="50" fill="red" opacity="0"/>
+                    </svg>
+                `;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgZeroOpacity, 'image/svg+xml');
+
+                fileManager.parseShapes(doc.querySelector('svg'));
+
+                const shape = mockCanvas.addShape.mock.calls[0][0];
+                expect(shape.opacity).toBe(0);
+            });
+        });
     });
 });

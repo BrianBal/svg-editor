@@ -50,6 +50,8 @@ class SelectTool {
         for (const shape of selectedShapes) {
             this.originalStates.set(shape.id, this.captureShapeState(shape));
         }
+
+        this.canvas.selection.setDragging(true);
     }
 
     captureShapeState(shape) {
@@ -174,6 +176,8 @@ class SelectTool {
                 historyManager.endMultiTransaction();
             }
         }
+
+        this.canvas.selection.setDragging(false);
         this.isDragging = false;
         this.originalStates = null;
     }
