@@ -197,49 +197,7 @@ html, body {
     text-align: center;
 }
 
-/* Footer */
-.app-footer {
-    height: var(--footer-height);
-    background: var(--bg-panel);
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-}
-
-.footer-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-left: auto;
-}
-
-.app-footer .svg-settings {
-    gap: 12px;
-}
-
-.app-footer .svg-settings input[type="number"],
-.app-footer .svg-settings input[type="text"] {
-    width: 70px;
-    padding: 4px 6px;
-}
-
-.app-footer .zoom-controls {
-    margin-left: 0;
-    padding-left: 12px;
-    border-left: 1px solid var(--border-color);
-}
-
-.app-footer .zoom-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 14px;
-}
-
-.app-footer #zoom-fit {
-    padding: 0 8px;
-    height: 24px;
-}
+/* Footer - REMOVED */
 
 /* Buttons */
 .btn {
@@ -299,6 +257,13 @@ html, body {
     position: relative;
 }
 
+/* Full viewport canvas */
+.panel-center.panel-fullscreen {
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    position: relative;
+}
+
 .canvas-wrapper {
     display: block;
     min-width: 100%;
@@ -306,33 +271,7 @@ html, body {
     box-sizing: border-box;
 }
 
-.panel-right {
-    width: var(--panel-right-width);
-    flex-shrink: 0;
-    border-left: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: row;
-}
-
-.panel-right-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.panel-right-tools {
-    width: 48px;
-    flex-shrink: 0;
-    background: var(--bg-dark);
-    border-left: 1px solid var(--border-color);
-    padding: 12px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    height: 100%;
-}
+/* Right panel - REMOVED */
 
 .panel-header {
     padding: 14px 16px;
@@ -759,35 +698,7 @@ html, body {
     border-color: var(--accent-color);
 }
 
-/* Tool buttons in sidebar */
-.tool-btn-icon {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    transition: all 0.15s;
-}
-
-.tool-btn-icon:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.tool-btn-icon.active {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.tool-btn-icon svg {
-    width: 20px;
-    height: 20px;
-}
+/* Tool buttons - REMOVED (now in ToolsPalette) */
 
 /* Delete button */
 .btn-delete {
@@ -1306,6 +1217,345 @@ html, body {
     border-radius: 50%;
     border: none;
     cursor: pointer;
+}
+
+/* ===========================================
+   Floating UI Overlay System
+   =========================================== */
+
+/* Overlay container (click-through) */
+.ui-overlays {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Semi-transparent panel style */
+.overlay-panel {
+    background: rgba(45, 45, 45, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(64, 64, 64, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Toolbar overlay */
+.toolbar-overlay {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+/* Layers panel overlay */
+.layers-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    pointer-events: auto;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.layers-overlay.minimized {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.layers-overlay .panel-left {
+    background: rgba(45, 45, 45, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(64, 64, 64, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border-right: none;
+}
+
+.layers-overlay .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Minimize button (in panel header) */
+.panel-minimize-btn {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.panel-minimize-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Expand button (top-left corner when minimized) */
+.layers-expand-btn {
+    position: fixed;
+    top: calc(var(--header-height) + 16px);
+    left: 16px;
+    width: 48px;
+    height: 48px;
+    background: rgba(45, 45, 45, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(64, 64, 64, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.layers-expand-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-color);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Quick actions overlay */
+.quick-actions-overlay {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    pointer-events: auto;
+}
+
+.quick-actions-overlay .zoom-controls {
+    background: rgba(45, 45, 45, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(64, 64, 64, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    margin: 0;
+    border-left: none;
+}
+
+/* Tools Palette */
+.tools-palette {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tool-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-btn:hover {
+    background: var(--bg-hover);
+}
+
+.tool-btn.active {
+    background: var(--bg-hover);
+}
+
+.tool-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text-muted);
+}
+
+.tool-btn:hover svg {
+    stroke: var(--text-primary);
+}
+
+.tool-btn.active svg {
+    stroke: var(--accent-color);
+}
+
+/* Tool Context Panel */
+.tool-context {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    animation: fadeInScale 0.3s ease;
+}
+
+.tool-context-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-context-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--accent-color);
+}
+
+.tool-tabs {
+    display: flex;
+    gap: 4px;
+    border-left: 1px solid rgba(64, 64, 64, 0.8);
+    padding-left: 8px;
+    transition: width 0.3s ease;
+}
+
+.tool-tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    animation: slideInTab 0.2s ease;
+    animation-fill-mode: backwards;
+}
+
+.tool-tab:nth-child(1) { animation-delay: 0.05s; }
+.tool-tab:nth-child(2) { animation-delay: 0.08s; }
+.tool-tab:nth-child(3) { animation-delay: 0.11s; }
+.tool-tab:nth-child(4) { animation-delay: 0.14s; }
+.tool-tab:nth-child(5) { animation-delay: 0.17s; }
+.tool-tab:nth-child(6) { animation-delay: 0.20s; }
+.tool-tab:nth-child(7) { animation-delay: 0.23s; }
+.tool-tab:nth-child(8) { animation-delay: 0.26s; }
+
+@keyframes slideInTab {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+.tool-tab:hover {
+    background: rgba(64, 64, 64, 0.5);
+    color: var(--text-primary);
+}
+
+.tool-tab.active {
+    background: rgba(64, 64, 64, 0.5);
+    color: var(--accent-color);
+}
+
+/* Property Window */
+.property-window {
+    position: fixed;
+    top: calc(var(--header-height) + 72px);
+    right: 16px;
+    width: 320px;
+    max-height: 500px;
+    z-index: 150;
+    animation: slideIn 0.2s ease-out;
+    pointer-events: auto;
+}
+
+.property-window-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(64, 64, 64, 0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.property-window-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.property-window-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+}
+
+.property-window-close:hover {
+    color: var(--text-primary);
+}
+
+.property-window-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 450px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Point Tool Window - Specialized styling */
+.point-tool-window {
+    /* Use same base styles as property-window */
+    border-left: 2px solid var(--accent-color);
+}
+
+.point-tool-window .property-window-header h3 {
+    color: var(--accent-color);
+    font-size: 13px;
+}
+
+.property-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 60px;
 }
 
 /* ===========================================

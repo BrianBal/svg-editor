@@ -42,6 +42,10 @@ const DocumentProperties = {
             if (canvas) {
                 const newViewBox = `0 0 ${value} ${appState.svgHeight}`;
                 canvas.updateSize(value, appState.svgHeight, newViewBox);
+                // Recalculate zoom to properly scale the canvas container
+                if (window.app?.updateZoom) {
+                    window.app.updateZoom(window.app.zoom);
+                }
             }
         }
     },
@@ -57,6 +61,10 @@ const DocumentProperties = {
             if (canvas) {
                 const newViewBox = `0 0 ${appState.svgWidth} ${value}`;
                 canvas.updateSize(appState.svgWidth, value, newViewBox);
+                // Recalculate zoom to properly scale the canvas container
+                if (window.app?.updateZoom) {
+                    window.app.updateZoom(window.app.zoom);
+                }
             }
         }
     },
@@ -372,9 +380,12 @@ class PropertiesPanel {
 
         this.drawingTools = ['rectangle', 'ellipse', 'line', 'polyline', 'star', 'text'];
 
-        this.setupToolButtons();
-        this.setupEventListeners();
-        this.render();
+        // Only setup if container exists (for backwards compatibility)
+        if (this.container) {
+            this.setupToolButtons();
+            this.setupEventListeners();
+            this.render();
+        }
     }
 
     loadCollapsedSections() {
@@ -448,6 +459,9 @@ class PropertiesPanel {
     }
 
     render() {
+        // Skip render if no container (new UI uses PropertyWindow instead)
+        if (!this.container) return;
+
         const context = this.getContext();
         this.container.innerHTML = '';
         this.controls.clear();

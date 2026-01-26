@@ -21,6 +21,8 @@ class App {
 
         this.layersPanel = new LayersPanel(this.canvas);
         this.propertiesPanel = new PropertiesPanel(this.canvas);
+        this.toolsPalette = new ToolsPalette(this.canvas);
+        this.propertyTabManager = new PropertyTabManager(this.canvas);
 
         this.loader = new SVGLoader(this.canvas);
 
@@ -39,6 +41,7 @@ class App {
 
         this.setupKeyboardShortcuts();
         this.setupFileManagement();
+        this.setupLayersPanel();
 
         // Load most recently opened file, or start with empty document
         await this.loadMostRecentFile();
@@ -111,6 +114,18 @@ class App {
 
         const canvasWrapper = document.getElementById('canvas-wrapper');
 
+        // Calculate safe area for canvas (accounts for layers panel)
+        const getSafeArea = () => {
+            const layersMinimized = document.getElementById('layers-overlay')?.classList.contains('minimized');
+            const leftPanelWidth = layersMinimized ? 48 : 260;
+            const padding = 40;
+
+            return {
+                width: window.innerWidth - leftPanelWidth - padding * 2,
+                height: window.innerHeight - 50 - padding * 2, // header height
+            };
+        };
+
         const updateZoom = (value) => {
             this.zoom = Math.max(10, Math.min(400, value));
             slider.value = this.zoom;
@@ -155,13 +170,12 @@ class App {
         });
 
         zoomFit.addEventListener('click', () => {
-            const panelRect = canvasPanel.getBoundingClientRect();
+            const safeArea = getSafeArea();
             const canvasWidth = appState.svgWidth;
             const canvasHeight = appState.svgHeight;
-            const padding = 80;
 
-            const scaleX = (panelRect.width - padding) / canvasWidth;
-            const scaleY = (panelRect.height - padding) / canvasHeight;
+            const scaleX = safeArea.width / canvasWidth;
+            const scaleY = safeArea.height / canvasHeight;
             const scale = Math.min(scaleX, scaleY, 1) * 100;
 
             updateZoom(Math.round(scale));
@@ -184,7 +198,16 @@ class App {
 
         // Update container dimensions when a new file is loaded
         eventBus.on('canvas:loaded', () => {
-            updateZoom(this.zoom);
+            // Auto-fit on file load
+            const safeArea = getSafeArea();
+            const canvasWidth = appState.svgWidth;
+            const canvasHeight = appState.svgHeight;
+
+            const scaleX = safeArea.width / canvasWidth;
+            const scaleY = safeArea.height / canvasHeight;
+            const scale = Math.min(scaleX, scaleY, 1) * 100;
+
+            updateZoom(Math.round(scale));
         });
     }
 
@@ -208,13 +231,43 @@ class App {
                     break;
 
                 case 'Escape':
-                    // Cancel smartpencil recognition if active
-                    const currentTool = this.canvas.currentTool;
-                    if (currentTool && currentTool.cancel) {
-                        currentTool.cancel();
+                    // Priority order (progressive deselection):
+
+                    // 1. Deselect point if any point selected
+                    const selectedPointIndex = this.canvas.selection?.getSelectedPointIndex();
+                    if (selectedPointIndex !== null) {
+                        this.canvas.selection.selectPoint(null);
+                        // Emits point:selected event with null, which closes point window
+                        break;
                     }
-                    appState.deselectAll();
-                    appState.setTool('select');
+
+                    // 2. Close property window if open (regular or point)
+                    if (this.propertyTabManager &&
+                        (this.propertyTabManager.isPropertyWindowOpen() ||
+                         this.propertyTabManager.isPointToolWindowOpen())) {
+                        this.propertyTabManager.closePropertyWindow();
+                        this.propertyTabManager.closePointToolWindow();
+                        this.propertyTabManager.activeTab = null;
+                        this.propertyTabManager.toolContextPanel.setActiveTab(null);
+                        break;
+                    }
+
+                    // 3. Deselect shapes if any selected
+                    if (appState.selectedShapeIds.length > 0) {
+                        appState.deselectAll();
+                        break;
+                    }
+
+                    // 4. Switch to select tool if drawing tool is active
+                    if (appState.activeTool !== 'select') {
+                        // Cancel smartpencil recognition if active
+                        const currentTool = this.canvas.currentTool;
+                        if (currentTool && currentTool.cancel) {
+                            currentTool.cancel();
+                        }
+                        appState.setTool('select');
+                        break;
+                    }
                     break;
 
                 case 'z':
@@ -365,6 +418,26 @@ class App {
                     break;
             }
         });
+    }
+
+    setupLayersPanel() {
+        const layersOverlay = document.getElementById('layers-overlay');
+        const minimizeBtn = document.getElementById('layers-minimize-btn');
+        const expandBtn = document.getElementById('layers-expand-btn');
+
+        let isMinimized = localStorage.getItem('layersMinimized') === 'true';
+
+        const setMinimized = (minimized) => {
+            isMinimized = minimized;
+            layersOverlay.classList.toggle('minimized', minimized);
+            expandBtn.style.display = minimized ? 'flex' : 'none';
+            localStorage.setItem('layersMinimized', minimized);
+        };
+
+        setMinimized(isMinimized); // Apply saved state
+
+        minimizeBtn.addEventListener('click', () => setMinimized(true));
+        expandBtn.addEventListener('click', () => setMinimized(false));
     }
 
     moveSelectedShapes(dx, dy) {

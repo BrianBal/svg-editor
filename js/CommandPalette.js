@@ -283,6 +283,13 @@ class CommandPalette {
                 shortcut: null,
                 action: () => window.app.fileManager.exportToFile(),
                 isAvailable: () => true
+            },
+            {
+                id: 'document:settings',
+                label: 'Document Settings',
+                shortcut: null,
+                action: () => this.openDocumentSettings(),
+                isAvailable: () => true
             }
         );
 
@@ -907,6 +914,77 @@ class CommandPalette {
         if (shapes.length !== 1) return false;
         const shape = shapes[0];
         return shape.type === 'polyline' || shape.type === 'path';
+    }
+
+    openDocumentSettings() {
+        // Create a special tab for document settings
+        const documentTab = {
+            id: 'document',
+            label: 'Document',
+            properties: ['width', 'height', 'background', 'defaultStroke', 'defaultFill', 'defaultStrokeWidth']
+        };
+
+        // Close any existing property window
+        if (window.app?.propertyTabManager) {
+            window.app.propertyTabManager.closePropertyWindow();
+        }
+
+        // Create and open document settings window
+        const documentWindow = new PropertyWindow();
+        documentWindow.tab = documentTab;
+        documentWindow.shapes = []; // No shapes, will use appState
+
+        // Create window manually
+        documentWindow.window = document.createElement('div');
+        documentWindow.window.className = 'property-window overlay-panel';
+        documentWindow.window.id = 'property-window';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'property-window-header';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Document Settings';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'property-window-close';
+        closeBtn.textContent = '×';
+        closeBtn.addEventListener('click', () => {
+            documentWindow.close();
+        });
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+        documentWindow.window.appendChild(header);
+
+        // Content
+        const content = document.createElement('div');
+        content.className = 'property-window-content';
+        content.id = 'property-window-content';
+        documentWindow.window.appendChild(content);
+
+        // Add to UI overlays
+        const overlays = document.querySelector('.ui-overlays');
+        overlays.appendChild(documentWindow.window);
+
+        // Render properties using document and default properties
+        const schema = { ...DocumentProperties, ...DefaultStyleProperties };
+        const filteredSchema = {};
+
+        documentTab.properties.forEach(propKey => {
+            if (schema[propKey]) {
+                filteredSchema[propKey] = schema[propKey];
+            }
+        });
+
+        Object.entries(filteredSchema).forEach(([key, def]) => {
+            const value = def.get(appState);
+            const control = documentWindow.renderControl(key, def, value, appState);
+            if (control) {
+                control.dataset.propertyKey = key;
+                content.appendChild(control);
+            }
+        });
     }
 }
 

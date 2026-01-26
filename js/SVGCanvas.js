@@ -146,7 +146,7 @@ class SVGCanvas {
 
             this.selection.setDragging(true);
 
-            if (this.activeHandle.type === 'point') {
+            if (this.activeHandle.type === 'point' || this.activeHandle.type === 'path-point') {
                 this.selection.selectPoint(parseInt(this.activeHandle.data));
             }
             return;
